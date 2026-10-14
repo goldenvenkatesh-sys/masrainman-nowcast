@@ -8,8 +8,7 @@ import numpy as np
 import requests
 
 # Reads your Token and Chat ID directly from GitHub Secrets!
-TELEGRAM_BOT_TOKEN = os.environ.get("8898452623:AAG1sYzutFvRkgNSR25h4PvcPaqOp8DdKxw
-", "").strip()
+TELEGRAM_BOT_TOKEN = os.environ.get("8898452623:AAG1sYzutFvRkgNSR25h4PvcPaqOp8DdKxw", "").strip()
 TELEGRAM_CHAT_ID = os.environ.get("1227665254", "").strip()
 
 LON_MIN, LON_MAX = 76.2, 82.2
