@@ -1,8 +1,8 @@
 name: Automated Radar Nowcast
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Runs automatically every 15 minutes
-  workflow_dispatch:
+    - cron: '*/15 * * * *'  # Automatically runs every 15 minutes
+  workflow_dispatch:        # Gives you a manual "Run workflow" button
 
 jobs:
   scan:
