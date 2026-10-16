@@ -29,7 +29,7 @@ from .alerts import Nowcast
 W, H = 1080, 1350
 MAP_BOX = (40, 236, 1040, 1086)          # left, top, right, bottom of the map panel
 LOGO = config.ASSETS / "masrainman_logo.png"
-TILE_CACHE = config.ROOT / "tiles_cache"
+TILE_CACHE = config.ROOT / "tiles_cache" / "esri_lightgray"   # new folder: old CARTO tiles had "API KEY REQUIRED" on them
 BOUNDARIES = config.ASSETS / "boundaries.json"
 
 INK = (17, 20, 28)
@@ -37,10 +37,11 @@ GREY = (90, 98, 112)
 WHITE = (255, 255, 255)
 ACCENT = (225, 0, 160)
 
-# White, label-light Leaflet basemap (CARTO Positron). Override with BASEMAP_URL.
+# White/light-grey Leaflet basemap that needs no API key (Esri World Light
+# Gray Canvas, 256 px tiles). Override with BASEMAP_URL (+ BASEMAP_TILE_PX).
 BASEMAP_URL = os.environ.get("BASEMAP_URL") or (
-    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png"
-    + (f"?key={os.environ['CARTO_API_KEY']}" if os.environ.get("CARTO_API_KEY") else ""))
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}")
+TILE_PX = int(os.environ.get("BASEMAP_TILE_PX", "256"))
 COARSEN = int(os.environ.get("CARD_BLOCK", "2"))     # 2 x 0.02 deg = ~4.4 km blocks
 
 LEGEND_EN = ["Drizzle", "Light", "Moderate", "Mod+", "Heavy", "V.Heavy", "Intense", "Extreme"]
@@ -144,7 +145,7 @@ def _tile(z, x, y) -> Image.Image | None:
 
 def basemap(frame: Frame, engine) -> Image.Image:
     out = Image.new("RGB", (frame.w, frame.h), (250, 250, 248))
-    z = int(max(5, min(12, round(math.log2(frame.s)) - 1)))    # @2x tiles: 512 px per tile
+    z = int(max(5, min(13, round(math.log2(frame.s * 256 / TILE_PX)))))
     n = 2 ** z
     tw = 256.0 / n                                              # one tile, in world units
     tx0, ty0 = int(frame.x0 // tw), int(frame.y0 // tw)
@@ -499,7 +500,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     # footer
     disc = "Extrapolated from current storm motion, not a guaranteed forecast. Follow official IMD warnings."
     d.text((40, H - 66), disc, font=fit_font(d, disc, "reg", 17, 1000), fill=GREY)
-    d.text((40, H - 38), "IMD radar data. Map © OpenStreetMap contributors © CARTO", font=font("reg", 16), fill=GREY)
+    d.text((40, H - 38), "IMD radar data. Basemap © Esri, HERE, Garmin, © OpenStreetMap contributors", font=font("reg", 16), fill=GREY)
     d.text((W - 40, H - 40), config.BRAND_HANDLE, font=font("xbold", 22), fill=ACCENT, anchor="ra")
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
