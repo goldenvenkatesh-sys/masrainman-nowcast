@@ -32,10 +32,10 @@ def build_items(engine):
     proj_i = names.index(max(plus, key=lambda n: int(n[5:]))) if plus else None
     aspect = (MAP_BOX[2] - MAP_BOX[0]) / (MAP_BOX[3] - MAP_BOX[1])
 
-    for key, en, ta, bbox, states in REGIONS:
+    for key, en, ta, bbox, states, band in REGIONS:
         if key not in ENABLED:
             continue
-        rnc = for_region(nc, states, en, ta, HASHTAGS.get(key, ""))
+        rnc = for_region(nc, states, en, ta, HASHTAGS.get(key, ""), band)
         if not (rnc.raining or rnc.coming):
             print(f"[cycle] {key}: no moderate+ rain at any town -- no card")
             continue

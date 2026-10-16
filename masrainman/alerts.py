@@ -56,6 +56,7 @@ class PlaceStatus:
     eta_min: int | None = None     # earliest lead with rain >= ALERT_MIN_DBZ (if not raining now)
     soon_dbz: float = 0.0          # strongest expected within 60 min
     eta_clock: str = ""            # e.g. "7:01 PM"
+    near: bool = False             # rain is in the area around the town, not over it
 
 
 @dataclass
@@ -102,6 +103,10 @@ def _sample(arr2d: np.ndarray, g: dict, lat: float, lon: float, radius_km: float
     if r0 >= r1 or c0 >= c1:
         return None
     win = arr2d[r0:r1, c0:c1].astype(float)
+    # true circle, not a square box (a box's corners reach ~40% further)
+    rr, cc = np.mgrid[r0:r1, c0:c1]
+    dkm = np.hypot((rr - r) * step * 111.0, (cc - c) * step * 111.0 * math.cos(math.radians(lat)))
+    win = np.where(dkm <= radius_km, win, 255)
     covered = win[win != 255]
     if covered.size == 0:
         return None
@@ -109,6 +114,38 @@ def _sample(arr2d: np.ndarray, g: dict, lat: float, lon: float, radius_km: float
     if vals.size < 2:              # nothing, or one stray pixel -> treat as dry
         return 0.0
     return float(vals[-2])
+
+
+TOWN_RADIUS_KM = 3.0      # rain within this distance counts as "at" the town
+NEAR_RADIUS_KM = 15.0     # a storm cell this close to a town is reported as "near" it
+
+
+def _km(a, b):
+    dlat = (a[0] - b[0]) * 111.0
+    dlon = (a[1] - b[1]) * 111.0 * math.cos(math.radians((a[0] + b[0]) / 2))
+    return math.hypot(dlat, dlon)
+
+
+def _add_near_towns(nc: "Nowcast", doc: dict) -> None:
+    """Every storm cell at/above ALERT_MIN_DBZ gets named, even when it sits
+    between towns: it is reported as 'Near <closest town>' (within
+    NEAR_RADIUS_KM) with that cell's own strength, so no cell on the radar
+    is silently left out of the caption."""
+    named = {p.en for p in nc.raining}
+    best_by_town: dict[str, tuple] = {}
+    for c in doc.get("cells") or []:
+        dbz = float(c.get("max_dbz", 0))
+        if dbz < config.ALERT_MIN_DBZ:
+            continue
+        town = min(PLACES, key=lambda t: _km((t[2], t[3]), (c["lat"], c["lon"])))
+        if town[0] in named or _km((town[2], town[3]), (c["lat"], c["lon"])) > NEAR_RADIUS_KM:
+            continue
+        if dbz > best_by_town.get(town[0], (None, 0))[1]:
+            best_by_town[town[0]] = (town, dbz)
+    for town, dbz in best_by_town.values():
+        nc.raining.append(PlaceStatus(town[0], town[1], town[2], town[3], town[4], town[5],
+                                      now_dbz=dbz, near=True))
+    nc.coming = [p for p in nc.coming if p.en not in best_by_town]
 
 
 def build_nowcast() -> Nowcast | None:
@@ -135,7 +172,7 @@ def build_nowcast() -> Nowcast | None:
     for en, ta, lat, lon, pri, st in PLACES:
         ps = PlaceStatus(en, ta, lat, lon, pri, st)
         if obs_i is not None:
-            v = _sample(arr[obs_i], g, lat, lon, 3.0)
+            v = _sample(arr[obs_i], g, lat, lon, TOWN_RADIUS_KM)
             if v is None:          # outside every radar's coverage -- say nothing
                 continue
             ps.now_dbz = v
@@ -150,6 +187,7 @@ def build_nowcast() -> Nowcast | None:
             nc.raining.append(ps)
         elif ps.eta_min is not None:
             nc.coming.append(ps)
+    _add_near_towns(nc, doc)
     nc.raining.sort(key=lambda p: (-p.now_dbz, p.priority))
     nc.coming.sort(key=lambda p: (p.eta_min, -p.soon_dbz, p.priority))
     return nc
@@ -164,13 +202,17 @@ def _clock(valid_ist: str) -> str:
         return ""
 
 
-def for_region(nc: Nowcast, states: set, en: str, ta: str, hashtags: str = "") -> Nowcast:
-    """A copy of the nowcast that only talks about places in `states`."""
+def for_region(nc: Nowcast, states: set, en: str, ta: str, hashtags: str = "",
+               lat_band: tuple | None = None) -> Nowcast:
+    """A copy of the nowcast that only talks about places in `states`
+    (and, if given, with latitude inside lat_band = (south, north))."""
     from dataclasses import replace
-    r = replace(nc, raining=[p for p in nc.raining if p.state in states],
-                coming=[p for p in nc.coming if p.state in states], region_en=en, region_ta=ta,
-                hashtags=hashtags)
-    return r
+
+    def keep(p):
+        return p.state in states and (lat_band is None or lat_band[0] <= p.lat < lat_band[1])
+    return replace(nc, raining=[p for p in nc.raining if keep(p)],
+                   coming=[p for p in nc.coming if keep(p)], region_en=en, region_ta=ta,
+                   hashtags=hashtags)
 
 
 def _utf16_len(s: str) -> int:
@@ -211,6 +253,8 @@ def build_caption(nc: Nowcast, limit: int = 1000) -> str:
 
     def now_line(p: PlaceStatus) -> str:
         t = tier(p.now_dbz)
+        if p.near:
+            return f"{t[3]} Near {p.en} – {t[1]} | {p.ta} அருகே – {t[2]}"
         return f"{t[3]} {p.en} – {t[1]} | {p.ta} – {t[2]}"
 
     def soon_line(p: PlaceStatus) -> str:

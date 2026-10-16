@@ -405,7 +405,8 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         dbz = p.now_dbz if kind == "now" else p.soon_dbz
         lvl = max([k for k in SHORT_EN if dbz >= k] + [20])
         line3 = SHORT_EN[lvl] + ("" if kind == "now" else f" ~{p.eta_clock or str(p.eta_min) + ' min'}")
-        lines = [(p.en, f_name, INK), (p.ta, f_ta, (40, 44, 56)), (line3, f_int, INK)]
+        name_en, name_ta = (f"Near {p.en}", f"{p.ta} அருகே") if getattr(p, "near", False) else (p.en, p.ta)
+        lines = [(name_en, f_name, INK), (name_ta, f_ta, (40, 44, 56)), (line3, f_int, INK)]
         bw, bh = max(text_w(d, s, f) for s, f, _ in lines) + 10, 88
         box = None
         for cy in (y + 6 + bh / 2, y - 6 - bh / 2):           # below the dot, else above
@@ -449,6 +450,11 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     d.text((141, 64), "Experimental Rainfall Nowcast based on IMD Radar", font=font("semi", 20), fill=GREY)
     mixed_text(d, (141, 102), "IMD ரேடார் அடிப்படையிலான மழை முன்னறிவிப்பு (சோதனை)", 17, GREY)
     t_now = nc.layer_times.get(0) or ""
+    if not t_now:
+        try:
+            t_now = datetime.strptime(nc.generated_ist.replace(" IST", ""), "%d %b %Y %H:%M").strftime("%I:%M %p").lstrip("0")
+        except Exception:
+            t_now = ""
     t_proj = nc.layer_times.get(proj_lead, "") if proj_lead else ""
     try:
         day = datetime.strptime(nc.generated_ist.replace(" IST", ""), "%d %b %Y %H:%M").strftime("%d %b").upper()
@@ -466,7 +472,8 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     t1, t2 = f"{title_en}: {den}", f"{title_ta}: {dta}"
     d.text((W / 2, 140), t1, font=fit_font(d, t1, "xbold", 30, 1000), fill=INK, anchor="mm")
     mixed_text(d, (W / 2, 175), t2, 21, (200, 0, 120), anchor="mm", max_w=1000)
-    key = f"Colours: now {t_now}     Dashed: ~{t_proj}     Arrows: motion"
+    key = (f"Colours: now {t_now}     Dashed: ~{t_proj}     Arrows: motion" if t_proj
+           else f"Colours: rain on radar at {t_now}  (motion needs one more radar frame)")
     d.text((W / 2, 210), key, font=fit_font(d, key, "reg", 21, 1000), fill=INK, anchor="mm")
 
     # colour pill legend

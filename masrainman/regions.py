@@ -13,15 +13,22 @@ import os
 import numpy as np
 
 REGIONS = [
-    # key, English, Tamil, (south, west, north, east) where the view may go, states named in text
-    ("tn", "Tamil Nadu & Puducherry", "தமிழ்நாடு, புதுச்சேரி", (7.9, 76.2, 14.2, 80.9), {"TN", "PY"}),
-    ("kl", "Kerala", "கேரளா", (8.0, 74.6, 12.9, 77.5), {"KL"}),
-    ("ka", "Karnataka", "கர்நாடகா", (11.4, 73.6, 15.4, 77.9), {"KA"}),
+    # key, English, Tamil, (south, west, north, east) where the view may go,
+    # states named in text, latitude band of the towns it names (None = all)
+    ("tn", "North Tamil Nadu & Puducherry", "வட தமிழ்நாடு, புதுச்சேரி",
+     (10.4, 76.6, 14.2, 80.9), {"TN", "PY"}, (10.55, 99)),
+    ("tns", "South Tamil Nadu", "தென் தமிழ்நாடு",
+     (7.9, 76.6, 10.9, 80.2), {"TN", "PY"}, (0, 10.55)),
+    ("kl", "Kerala", "கேரளா", (8.0, 74.6, 12.9, 77.5), {"KL"}, None),
+    ("ka", "Karnataka", "கர்நாடகா", (11.4, 73.6, 15.4, 77.9), {"KA"}, None),
 ]
 HASHTAGS = {"tn": "#TamilNaduRains #ChennaiWeather #PuducherryRains",
+            "tns": "#TamilNaduRains #MaduraiRains #SouthTamilNadu",
             "kl": "#KeralaRains #KeralaWeather",
             "ka": "#KarnatakaRains #MangaluruRains"}
-ENABLED = [r.strip() for r in os.environ.get("REGIONS", "tn,kl,ka").split(",") if r.strip()]
+ENABLED = [r.strip() for r in os.environ.get("REGIONS", "tn,tns,kl,ka").split(",") if r.strip()]
+if "tn" in ENABLED and "tns" not in ENABLED:      # older setups list only "tn": keep the south card on
+    ENABLED.append("tns")
 
 # Height of the zoomed view in degrees of latitude (1.6 deg ~ 180 km,
 # about the reference "Chennai and surroundings" framing).
