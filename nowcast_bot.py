@@ -2197,8 +2197,10 @@ RADAR_MARKER_LABEL = {"niot": "NIOT X-DWR Chennai", "karaikal": "Karaikal DWR",
 # knowing before this project goes public: if the saved HTML map gets
 # heavy traffic, CARTO's usage limits apply against this key regardless of
 # who's viewing it. Rotate it if that becomes a concern.
-CARTO_VOYAGER_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'  # white Positron basemap + (f"?key={os.environ['CARTO_API_KEY']}" if os.environ.get('CARTO_API_KEY') else '')
-CARTO_ATTR = '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; OpenStreetMap contributors'
+# Keyless light-grey basemap (CARTO tiles now need a paid key and draw
+# "API KEY REQUIRED" on every tile without one).
+CARTO_VOYAGER_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+CARTO_ATTR = 'Basemap &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'
 
 
 def _smooth_nan_aware(dbz: np.ndarray, sigma_px: float) -> tuple[np.ndarray, np.ndarray]:
@@ -3790,7 +3792,7 @@ MOSAIC_BOUNDS = _compute_mosaic_bounds()  # (south, west, north, east) degrees
 MOSAIC_ZOOM = 7                           # matches build_forecast_map's zoom_start for 2+ radars
 
 MOSAIC_TILE_URL = CARTO_VOYAGER_URL
-MOSAIC_BASEMAP_PATH = Path("mosaic_basemap.png")
+MOSAIC_BASEMAP_PATH = Path("mosaic_basemap_esri.png")   # new name: the old CARTO one has "API KEY REQUIRED" on it
 MOSAIC_FRAMES_DIR = Path("mosaic_frames")
 RADAR_LOOP_DIR = Path("radar_loop")          # persisted (committed) -- see module docstring above
 RADAR_LOOP_WINDOWS_HOURS = (3, 6, 12)
