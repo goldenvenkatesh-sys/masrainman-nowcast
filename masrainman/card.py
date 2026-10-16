@@ -182,13 +182,20 @@ def basemap(frame: Frame, engine) -> Image.Image:
 
 # ------------------------------------------------------------- layers ----
 def coarsen(layer: np.ndarray, k: int) -> np.ndarray:
-    """Max-pool k x k nodes (255 = no coverage is treated as 0)."""
+    """k x k blocks, each taking the SECOND-highest of its nodes (255 = no
+    coverage counts as 0). Plain max-pooling let one hot pixel (a clutter
+    speck, or a column-max echo high up) paint a whole 4 km block, on top of
+    the engine already taking the max across radars -- the card ran hotter
+    and wider than IMD's own images. Needing two nodes to agree drops lone
+    pixels but keeps real cores, which are always several pixels wide.
+    No blurring, so peak intensities are not washed out."""
     a = layer.astype(float)
     a[a == 255] = 0
     if k <= 1:
         return a
     r, c = (a.shape[0] // k) * k, (a.shape[1] // k) * k
-    return a[:r, :c].reshape(r // k, k, c // k, k).max(axis=(1, 3))
+    blocks = a[:r, :c].reshape(r // k, k, c // k, k).transpose(0, 2, 1, 3).reshape(r // k, c // k, k * k)
+    return np.sort(blocks, axis=2)[:, :, -2]
 
 
 def despeckle(a: np.ndarray) -> np.ndarray:
