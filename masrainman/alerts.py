@@ -126,6 +126,36 @@ def _km(a, b):
     return math.hypot(dlat, dlon)
 
 
+CORE_MIN_DBZ = 35.0       # a grid peak this strong counts as a storm core
+CORE_SPACING_KM = 12.0    # one core per ~12 km, so one storm isn't named five times
+
+
+def _grid_cores(nc: "Nowcast") -> list[tuple[float, float, float]]:
+    """Storm cores read straight off the observed radar grid: local peaks
+    >= CORE_MIN_DBZ with some echo around them. The engine's own tracked
+    cells can miss storms (far from the radar, or newly formed), and a storm
+    sitting between two towns was then never named at all -- this catches
+    those, wherever any radar sees them."""
+    if nc.grid is None:
+        return []
+    from scipy import ndimage
+    arr, g = nc.grid
+    names = [L["name"] for L in g["layers"]]
+    if "observed" not in names:
+        return []
+    a = arr[names.index("observed")].astype(float)
+    a[a == 255] = 0
+    step = g["step_deg"]
+    k = max(3, int(round(CORE_SPACING_KM / (step * 111.0))) | 1)
+    strong = a >= CORE_MIN_DBZ
+    support = ndimage.uniform_filter(strong.astype(float), size=3) * 9   # strong nodes in the 3x3 around
+    peaks = strong & (a == ndimage.maximum_filter(a, size=k)) & (support >= 2)
+    out = []
+    for r, c in zip(*np.nonzero(peaks)):
+        out.append((g["lat_north"] - r * step, g["lon_west"] + c * step, float(a[r, c])))
+    return out
+
+
 def _add_near_towns(nc: "Nowcast", doc: dict) -> None:
     """Every storm cell at/above ALERT_MIN_DBZ gets named, even when it sits
     between towns: it is reported as 'Near <closest town>' (within
@@ -133,10 +163,12 @@ def _add_near_towns(nc: "Nowcast", doc: dict) -> None:
     is silently left out of the caption."""
     named = {p.en for p in nc.raining}
     best_by_town: dict[str, tuple] = {}
-    for c in doc.get("cells") or []:
-        dbz = float(c.get("max_dbz", 0))
+    spots = [(c["lat"], c["lon"], float(c.get("max_dbz", 0))) for c in doc.get("cells") or []]
+    spots += _grid_cores(nc)
+    for lat, lon, dbz in spots:
         if dbz < config.ALERT_MIN_DBZ:
             continue
+        c = {"lat": lat, "lon": lon}
         town = min(PLACES, key=lambda t: _km((t[2], t[3]), (c["lat"], c["lon"])))
         if town[0] in named or _km((town[2], town[3]), (c["lat"], c["lon"])) > NEAR_RADIUS_KM:
             continue
@@ -203,13 +235,13 @@ def _clock(valid_ist: str) -> str:
 
 
 def for_region(nc: Nowcast, states: set, en: str, ta: str, hashtags: str = "",
-               lat_band: tuple | None = None) -> Nowcast:
+               zone=None) -> Nowcast:
     """A copy of the nowcast that only talks about places in `states`
-    (and, if given, with latitude inside lat_band = (south, north))."""
+    (and, if given, for which zone(lat, lon) is true)."""
     from dataclasses import replace
 
     def keep(p):
-        return p.state in states and (lat_band is None or lat_band[0] <= p.lat < lat_band[1])
+        return p.state in states and (zone is None or zone(p.lat, p.lon))
     return replace(nc, raining=[p for p in nc.raining if keep(p)],
                    coming=[p for p in nc.coming if keep(p)], region_en=en, region_ta=ta,
                    hashtags=hashtags)

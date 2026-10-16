@@ -12,23 +12,50 @@ import os
 
 import numpy as np
 
+def central_west_tn(lat: float, lon: float) -> bool:
+    """Kongu belt + central TN (Salem, Erode, Coimbatore, Nilgiris, Tiruppur,
+    Karur, Namakkal, Trichy, Perambalur, Dharmapuri, Krishnagiri, Dindigul,
+    Palani). Everything else in TN goes to the north/delta or south card."""
+    if lat >= 11.5:
+        return lon < 78.65
+    if lat >= 10.55:
+        return lon < 79.1
+    if lat >= 10.2:
+        return lon < 78.3
+    return False
+
+
+def _north_tn(lat, lon):
+    return lat >= 10.55 and not central_west_tn(lat, lon)
+
+
+def _south_tn(lat, lon):
+    return lat < 10.55 and not central_west_tn(lat, lon)
+
+
 REGIONS = [
     # key, English, Tamil, (south, west, north, east) where the view may go,
-    # states named in text, latitude band of the towns it names (None = all)
+    # states named in text, which of those states' towns it names
+    # (a function of lat, lon; None = all)
     ("tn", "North Tamil Nadu & Puducherry", "வட தமிழ்நாடு, புதுச்சேரி",
-     (10.4, 76.6, 14.2, 80.9), {"TN", "PY"}, (10.55, 99)),
+     (10.4, 78.3, 14.2, 80.9), {"TN", "PY"}, _north_tn),
+    ("tncw", "Central & West Tamil Nadu", "மத்திய, மேற்கு தமிழ்நாடு",
+     (10.0, 76.2, 12.95, 79.3), {"TN"}, central_west_tn),
     ("tns", "South Tamil Nadu", "தென் தமிழ்நாடு",
-     (7.9, 76.6, 10.9, 80.2), {"TN", "PY"}, (0, 10.55)),
+     (7.9, 76.6, 10.9, 80.2), {"TN", "PY"}, _south_tn),
     ("kl", "Kerala", "கேரளா", (8.0, 74.6, 12.9, 77.5), {"KL"}, None),
     ("ka", "Karnataka", "கர்நாடகா", (11.4, 73.6, 15.4, 77.9), {"KA"}, None),
 ]
 HASHTAGS = {"tn": "#TamilNaduRains #ChennaiWeather #PuducherryRains",
+            "tncw": "#TamilNaduRains #KonguRains #CoimbatoreRains #SalemRains #TrichyRains",
             "tns": "#TamilNaduRains #MaduraiRains #SouthTamilNadu",
             "kl": "#KeralaRains #KeralaWeather",
             "ka": "#KarnatakaRains #MangaluruRains"}
-ENABLED = [r.strip() for r in os.environ.get("REGIONS", "tn,tns,kl,ka").split(",") if r.strip()]
-if "tn" in ENABLED and "tns" not in ENABLED:      # older setups list only "tn": keep the south card on
-    ENABLED.append("tns")
+ENABLED = [r.strip() for r in os.environ.get("REGIONS", "tn,tncw,tns,kl,ka").split(",") if r.strip()]
+if "tn" in ENABLED:              # older setups list only "tn": keep all three Tamil Nadu cards on
+    for k in ("tncw", "tns"):
+        if k not in ENABLED:
+            ENABLED.append(k)
 
 # Height of the zoomed view in degrees of latitude (1.6 deg ~ 180 km,
 # about the reference "Chennai and surroundings" framing).
