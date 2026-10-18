@@ -1351,10 +1351,17 @@ def extract_observation_time(img: Image.Image, product: str) -> datetime | None:
                 # real frames are flowing, since this is the one layout
                 # where that assumption isn't confirmed by the frame's own
                 # printed text.
-                m = re.search(r"(\d{1,2}:\d{2})\s*/\s*(\d{1,2}-\w{3}-\d{4})", text)
-                if not m:
-                    return None
-                time_str, date_str, date_fmt, time_fmt = m.group(1), m.group(2), "%d-%b-%Y", "%H:%M"
+                # Mangaluru's layout: "HH:MM:SS UTC / DD-Mon-YYYY" (seconds and
+                # UTC, but a dashed date). Without this it was never read, so
+                # every Mangaluru frame showed "time unknown".
+                m = re.search(r"(\d{1,2}:\d{2}:\d{2})\s*UTC\s*/\s*(\d{1,2}-\w{3}-\d{4})", text)
+                if m:
+                    time_str, date_str, date_fmt, time_fmt = m.group(1), m.group(2), "%d-%b-%Y", "%H:%M:%S"
+                else:
+                    m = re.search(r"(\d{1,2}:\d{2})\s*/\s*(\d{1,2}-\w{3}-\d{4})", text)
+                    if not m:
+                        return None
+                    time_str, date_str, date_fmt, time_fmt = m.group(1), m.group(2), "%d-%b-%Y", "%H:%M"
                 try:
                     dt = datetime.strptime(f"{date_str} {time_str}", f"{date_fmt} {time_fmt}")
                 except ValueError:

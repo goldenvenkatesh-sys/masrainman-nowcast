@@ -25,8 +25,15 @@ def central_west_tn(lat: float, lon: float) -> bool:
     return False
 
 
+def north_interior_tn(lat, lon):
+    """Vellore, Ranipet, Tiruvannamalai, inland Villupuram, Kallakurichi:
+    north TN away from the coast (not the Kongu / central belt)."""
+    return lat >= 11.3 and lon < 79.6 and not central_west_tn(lat, lon)
+
+
 def _north_tn(lat, lon):
-    return lat >= 10.55 and not central_west_tn(lat, lon)
+    """Chennai, the north coast, Puducherry and the delta."""
+    return lat >= 10.55 and not central_west_tn(lat, lon) and not north_interior_tn(lat, lon)
 
 
 def _south_tn(lat, lon):
@@ -37,23 +44,28 @@ REGIONS = [
     # key, English, Tamil, (south, west, north, east) where the view may go,
     # states named in text, which of those states' towns it names
     # (a function of lat, lon; None = all)
-    ("tn", "North Tamil Nadu & Puducherry", "வட தமிழ்நாடு, புதுச்சேரி",
+    ("tn", "Chennai, North Coast & Delta", "சென்னை, வட கடலோரம், டெல்டா",
      (10.4, 78.3, 14.2, 80.9), {"TN", "PY"}, _north_tn),
+    ("tnni", "North Interior Tamil Nadu", "வட உள் தமிழ்நாடு",
+     (11.2, 78.3, 13.4, 79.9), {"TN"}, north_interior_tn),
     ("tncw", "Central & West Tamil Nadu", "மத்திய, மேற்கு தமிழ்நாடு",
      (10.0, 76.2, 12.95, 79.3), {"TN"}, central_west_tn),
     ("tns", "South Tamil Nadu", "தென் தமிழ்நாடு",
      (7.9, 76.6, 10.9, 80.2), {"TN", "PY"}, _south_tn),
     ("kl", "Kerala", "கேரளா", (8.0, 74.6, 12.9, 77.5), {"KL"}, None),
-    ("ka", "Karnataka", "கர்நாடகா", (11.4, 73.6, 15.4, 77.9), {"KA"}, None),
+    ("ka", "Karnataka", "கர்நாடகா", (11.4, 73.6, 15.4, 78.4), {"KA"}, None),
+    ("ap", "South Andhra Pradesh", "தென் ஆந்திரா", (13.15, 77.8, 15.6, 80.4), {"AP"}, None),
 ]
 HASHTAGS = {"tn": "#TamilNaduRains #ChennaiWeather #PuducherryRains",
             "tncw": "#TamilNaduRains #KonguRains #CoimbatoreRains #SalemRains #TrichyRains",
             "tns": "#TamilNaduRains #MaduraiRains #SouthTamilNadu",
             "kl": "#KeralaRains #KeralaWeather",
-            "ka": "#KarnatakaRains #MangaluruRains"}
-ENABLED = [r.strip() for r in os.environ.get("REGIONS", "tn,tncw,tns,kl,ka").split(",") if r.strip()]
-if "tn" in ENABLED:              # older setups list only "tn": keep all three Tamil Nadu cards on
-    for k in ("tncw", "tns"):
+            "ka": "#KarnatakaRains #MangaluruRains",
+            "tnni": "#TamilNaduRains #VelloreRains #TiruvannamalaiRains #VillupuramRains",
+            "ap": "#AndhraPradeshRains #TirupatiRains #NelloreRains"}
+ENABLED = [r.strip() for r in os.environ.get("REGIONS", "tn,tnni,tncw,tns,kl,ka,ap").split(",") if r.strip()]
+if "tn" in ENABLED:              # older setups list only "tn": keep every Tamil Nadu card and South AP on
+    for k in ("tnni", "tncw", "tns", "ap"):
         if k not in ENABLED:
             ENABLED.append(k)
 
