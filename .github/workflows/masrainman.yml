@@ -73,7 +73,12 @@ jobs:
         run: |
           git config user.name  "masrainman-bot"
           git config user.email "masrainman-bot@users.noreply.github.com"
-          for p in state archive mosaic_frames radar_loop mosaic_basemap.png tiles_cache assets/masrainman_logo.png; do
+          # Publish this cycle's radar grid for the "Ask MasRainman" page (read via raw.githubusercontent.com)
+          mkdir -p live
+          rm -f live/nowcast_bot_grid.bin.gz
+          [ -f output/nowcast_bot.json ] && cp output/nowcast_bot.json live/
+          [ -f output/nowcast_bot_grid.bin.gz ] && cp output/nowcast_bot_grid.bin.gz live/
+          for p in live state archive mosaic_frames radar_loop mosaic_basemap.png tiles_cache assets/masrainman_logo.png; do
             if [ -e "$p" ]; then git add -A "$p"; fi
           done
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
