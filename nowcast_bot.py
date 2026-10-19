@@ -2076,11 +2076,30 @@ def fetch_frame(url: str) -> bytes | None:
     # to "you forgot to re-run this cell" from the outside — a fresh query
     # string plus explicit no-cache headers rules that out.
     bust_url = f"{url}{'&' if '?' in url else '?'}_={int(time.time())}"
+    headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
     try:
-        r = requests.get(bust_url, timeout=20,
-                          headers={"Cache-Control": "no-cache", "Pragma": "no-cache"})
+        r = requests.get(bust_url, timeout=20, headers=headers)
         r.raise_for_status()
         return r.content
+    except requests.exceptions.SSLError as e:
+        # 18 Oct 2026, ~21:46 IST: mausam.imd.gov.in started serving a broken
+        # certificate chain ("self-signed certificate in certificate chain").
+        # Browsers still load it, but Python's strict check refused every
+        # frame and the bot went silent. These are public radar GIFs, so for
+        # IMD hosts only we retry once without certificate verification.
+        if "imd.gov.in" not in url:
+            print(f"[fetch] {url} failed: {e}")
+            return None
+        print(f"[fetch] {url}: IMD certificate check failed -- retrying without verification")
+        try:
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            r = requests.get(bust_url, timeout=20, headers=headers, verify=False)
+            r.raise_for_status()
+            return r.content
+        except requests.RequestException as e2:
+            print(f"[fetch] {url} failed (unverified retry): {e2}")
+            return None
     except requests.RequestException as e:
         print(f"[fetch] {url} failed: {e}")
         return None
