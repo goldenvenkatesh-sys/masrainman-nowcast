@@ -1,8 +1,8 @@
 {
  "schema": 1,
- "version": "20261020T004029Z",
- "generated_utc": "2026-10-20T00:40:29+00:00",
- "generated_ist": "20 Oct 2026 06:10 IST",
+ "version": "20261020T004638Z",
+ "generated_utc": "2026-10-20T00:46:38+00:00",
+ "generated_ist": "20 Oct 2026 06:16 IST",
  "stale_after_min": 60,
  "radars": [
   {
@@ -10,12 +10,12 @@
    "radar": "niot",
    "label": "NIOT MAXZ - aloft / building",
    "range_km": 85.0,
-   "obs_time_utc": "2026-10-20T00:20:05+00:00",
-   "obs_time_ist": "20 Oct 05:50 IST",
-   "age_min": 20.0,
+   "obs_time_utc": "2026-10-20T00:29:26+00:00",
+   "obs_time_ist": "20 Oct 05:59 IST",
+   "age_min": 17.0,
    "status": "fresh",
    "used": true,
-   "motion": "ok: 28 min between frames"
+   "motion": "ok: 9 min between frames"
   },
   {
    "product": "kkl_maxz",
@@ -24,7 +24,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-20T00:22:23+00:00",
    "obs_time_ist": "20 Oct 05:52 IST",
-   "age_min": 18.0,
+   "age_min": 24.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 10 min between frames"
@@ -36,7 +36,7 @@
    "range_km": 500.0,
    "obs_time_utc": "2026-10-20T00:10:29+00:00",
    "obs_time_ist": "20 Oct 05:40 IST",
-   "age_min": 30.0,
+   "age_min": 36.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: no earlier frame 4-45 min before the latest one"
@@ -46,12 +46,12 @@
    "radar": "chennai",
    "label": "Chennai DWR MAXZ - aloft / building",
    "range_km": 250.0,
-   "obs_time_utc": "2026-10-20T00:10:00+00:00",
-   "obs_time_ist": "20 Oct 05:40 IST",
-   "age_min": 30.0,
+   "obs_time_utc": "2026-10-20T00:30:00+00:00",
+   "obs_time_ist": "20 Oct 06:00 IST",
+   "age_min": 17.0,
    "status": "fresh",
    "used": true,
-   "motion": "ok: 10 min between frames"
+   "motion": "ok: 20 min between frames"
   },
   {
    "product": "cni_ppi",
@@ -60,7 +60,7 @@
    "range_km": 150.0,
    "obs_time_utc": "2026-10-20T00:10:00+00:00",
    "obs_time_ist": "20 Oct 05:40 IST",
-   "age_min": 30.0,
+   "age_min": 37.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 10 min between frames"
@@ -70,12 +70,12 @@
    "radar": "mangalore",
    "label": "Mangaluru DWR MAXZ - aloft / building",
    "range_km": 250.0,
-   "obs_time_utc": "2026-10-20T00:20:01+00:00",
-   "obs_time_ist": "20 Oct 05:50 IST",
-   "age_min": 20.0,
+   "obs_time_utc": "2026-10-20T00:30:01+00:00",
+   "obs_time_ist": "20 Oct 06:00 IST",
+   "age_min": 17.0,
    "status": "fresh",
    "used": true,
-   "motion": "ok: 30 min between frames"
+   "motion": "ok: 10 min between frames"
   },
   {
    "product": "tvm_ppi",
@@ -84,10 +84,10 @@
    "range_km": 240.0,
    "obs_time_utc": "2026-10-19T23:46:29+00:00",
    "obs_time_ist": "20 Oct 05:16 IST",
-   "age_min": 54.0,
-   "status": "fresh",
-   "used": true,
-   "motion": "ok: 15 min between frames"
+   "age_min": 60.0,
+   "status": "stale",
+   "used": false,
+   "motion": "no motion: frame too old to use"
   }
  ],
  "grid": {
@@ -107,69 +107,69 @@
    {
     "name": "plus_0",
     "lead_min": 0,
-    "valid_utc": "2026-10-20T00:40:29+00:00",
-    "valid_ist": "20 Oct 06:10 IST"
+    "valid_utc": "2026-10-20T00:46:38+00:00",
+    "valid_ist": "20 Oct 06:16 IST"
    },
    {
     "name": "plus_10",
     "lead_min": 10,
-    "valid_utc": "2026-10-20T00:50:29+00:00",
-    "valid_ist": "20 Oct 06:20 IST"
+    "valid_utc": "2026-10-20T00:56:38+00:00",
+    "valid_ist": "20 Oct 06:26 IST"
    },
    {
     "name": "plus_20",
     "lead_min": 20,
-    "valid_utc": "2026-10-20T01:00:29+00:00",
-    "valid_ist": "20 Oct 06:30 IST"
+    "valid_utc": "2026-10-20T01:06:38+00:00",
+    "valid_ist": "20 Oct 06:36 IST"
    },
    {
     "name": "plus_30",
     "lead_min": 30,
-    "valid_utc": "2026-10-20T01:10:29+00:00",
-    "valid_ist": "20 Oct 06:40 IST"
+    "valid_utc": "2026-10-20T01:16:38+00:00",
+    "valid_ist": "20 Oct 06:46 IST"
    },
    {
     "name": "plus_40",
     "lead_min": 40,
-    "valid_utc": "2026-10-20T01:20:29+00:00",
-    "valid_ist": "20 Oct 06:50 IST"
+    "valid_utc": "2026-10-20T01:26:38+00:00",
+    "valid_ist": "20 Oct 06:56 IST"
    },
    {
     "name": "plus_50",
     "lead_min": 50,
-    "valid_utc": "2026-10-20T01:30:29+00:00",
-    "valid_ist": "20 Oct 07:00 IST"
+    "valid_utc": "2026-10-20T01:36:38+00:00",
+    "valid_ist": "20 Oct 07:06 IST"
    },
    {
     "name": "plus_60",
     "lead_min": 60,
-    "valid_utc": "2026-10-20T01:40:29+00:00",
-    "valid_ist": "20 Oct 07:10 IST"
+    "valid_utc": "2026-10-20T01:46:38+00:00",
+    "valid_ist": "20 Oct 07:16 IST"
    },
    {
     "name": "plus_70",
     "lead_min": 70,
-    "valid_utc": "2026-10-20T01:50:29+00:00",
-    "valid_ist": "20 Oct 07:20 IST"
+    "valid_utc": "2026-10-20T01:56:38+00:00",
+    "valid_ist": "20 Oct 07:26 IST"
    },
    {
     "name": "plus_80",
     "lead_min": 80,
-    "valid_utc": "2026-10-20T02:00:29+00:00",
-    "valid_ist": "20 Oct 07:30 IST"
+    "valid_utc": "2026-10-20T02:06:38+00:00",
+    "valid_ist": "20 Oct 07:36 IST"
    },
    {
     "name": "plus_90",
     "lead_min": 90,
-    "valid_utc": "2026-10-20T02:10:29+00:00",
-    "valid_ist": "20 Oct 07:40 IST"
+    "valid_utc": "2026-10-20T02:16:38+00:00",
+    "valid_ist": "20 Oct 07:46 IST"
    }
   ]
  },
  "motion": {
   "available": true,
-  "overall_speed_kmh": 18.8,
-  "overall_bearing_deg": 213.0,
+  "overall_speed_kmh": 20.5,
+  "overall_bearing_deg": 212.0,
   "note": "bearing is the direction storms are moving TOWARD, in degrees clockwise from north"
  },
  "cells": [
@@ -177,189 +177,173 @@
    "id": 1,
    "radar": "niot",
    "product": "maxz",
-   "lat": 13.6721,
-   "lon": 80.401,
-   "max_dbz": 40.9,
-   "area_km2": 1.7,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 0.6,
-   "bearing_deg": 218.0,
-   "motion_reliable": false
-  },
-  {
-   "id": 4,
-   "radar": "niot",
-   "product": "maxz",
-   "lat": 13.4443,
-   "lon": 80.4699,
-   "max_dbz": 39.6,
-   "area_km2": 0.8,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 2.9,
-   "bearing_deg": 226.0,
-   "motion_reliable": false
-  },
-  {
-   "id": 12,
-   "radar": "niot",
-   "product": "maxz",
-   "lat": 13.3306,
-   "lon": 80.8854,
-   "max_dbz": 50.1,
-   "area_km2": 5.7,
+   "lat": 13.6447,
+   "lon": 80.3812,
+   "max_dbz": 49.3,
+   "area_km2": 1.4,
    "trend": "intensifying",
    "elevated": false,
    "confirmed_at_surface": false,
-   "speed_kmh": 19.1,
-   "bearing_deg": 220.0,
+   "speed_kmh": 24.2,
+   "bearing_deg": 210.0,
    "motion_reliable": true,
    "projected": {
     "30": [
-     13.2647,
-     80.8286
+     13.5503,
+     80.3251
     ],
     "60": [
-     13.1988,
-     80.7718
+     13.4559,
+     80.269
     ],
     "90": [
-     13.1329,
-     80.7149
+     13.3615,
+     80.2129
     ]
    }
   },
   {
-   "id": 30,
+   "id": 5,
    "radar": "niot",
    "product": "maxz",
-   "lat": 13.2262,
-   "lon": 79.8896,
-   "max_dbz": 35.6,
-   "area_km2": 0.2,
+   "lat": 13.4079,
+   "lon": 80.4526,
+   "max_dbz": 39.6,
+   "area_km2": 1.2,
+   "trend": "steady",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 29.5,
+   "bearing_deg": 213.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     13.2965,
+     80.3782
+    ],
+    "60": [
+     13.185,
+     80.3038
+    ],
+    "90": [
+     13.0736,
+     80.2294
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "radar": "niot",
+   "product": "maxz",
+   "lat": 13.3079,
+   "lon": 80.8572,
+   "max_dbz": 50.1,
+   "area_km2": 11.6,
    "trend": "weakening",
    "elevated": false,
    "confirmed_at_surface": false,
-   "speed_kmh": 0.7,
-   "bearing_deg": 205.0,
-   "motion_reliable": false
+   "speed_kmh": 16.6,
+   "bearing_deg": 226.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     13.256,
+     80.8019
+    ],
+    "60": [
+     13.204,
+     80.7467
+    ],
+    "90": [
+     13.1521,
+     80.6914
+    ]
+   }
+  },
+  {
+   "id": 26,
+   "radar": "niot",
+   "product": "maxz",
+   "lat": 13.1035,
+   "lon": 80.0441,
+   "max_dbz": 54.0,
+   "area_km2": 4.3,
+   "trend": "steady",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 16.1,
+   "bearing_deg": 137.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     13.0505,
+     80.0949
+    ],
+    "60": [
+     12.9974,
+     80.1457
+    ],
+    "90": [
+     12.9444,
+     80.1964
+    ]
+   }
+  },
+  {
+   "id": 28,
+   "radar": "niot",
+   "product": "maxz",
+   "lat": 12.9597,
+   "lon": 80.4419,
+   "max_dbz": 54.0,
+   "area_km2": 21.6,
+   "trend": "steady",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 29.0,
+   "bearing_deg": 206.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     12.8423,
+     80.3831
+    ],
+    "60": [
+     12.7249,
+     80.3244
+    ],
+    "90": [
+     12.6074,
+     80.2656
+    ]
+   }
   },
   {
    "id": 35,
    "radar": "niot",
    "product": "maxz",
-   "lat": 13.1307,
-   "lon": 80.0512,
-   "max_dbz": 54.0,
-   "area_km2": 4.8,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 9.6,
-   "bearing_deg": 216.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     13.0957,
-     80.0251
-    ],
-    "60": [
-     13.0607,
-     79.999
-    ],
-    "90": [
-     13.0258,
-     79.9729
-    ]
-   }
-  },
-  {
-   "id": 22,
-   "radar": "niot",
-   "product": "maxz",
-   "lat": 12.9914,
-   "lon": 80.4538,
-   "max_dbz": 54.7,
-   "area_km2": 28.7,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 27.7,
-   "bearing_deg": 216.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     12.8904,
-     80.3785
-    ],
-    "60": [
-     12.7895,
-     80.3032
-    ],
-    "90": [
-     12.6886,
-     80.228
-    ]
-   }
-  },
-  {
-   "id": 53,
-   "radar": "niot",
-   "product": "maxz",
-   "lat": 12.7866,
-   "lon": 80.6084,
+   "lat": 12.3428,
+   "lon": 80.17,
    "max_dbz": 46.2,
-   "area_km2": 0.3,
+   "area_km2": 15.0,
    "trend": "unknown",
    "elevated": false,
    "confirmed_at_surface": false,
-   "speed_kmh": 5.6,
-   "bearing_deg": 222.0,
+   "speed_kmh": 31.2,
+   "bearing_deg": 214.0,
    "motion_reliable": true,
    "projected": {
     "30": [
-     12.7678,
-     80.5911
+     12.2263,
+     80.0895
     ],
     "60": [
-     12.7491,
-     80.5738
+     12.1098,
+     80.0091
     ],
     "90": [
-     12.7303,
-     80.5565
-    ]
-   }
-  },
-  {
-   "id": 27,
-   "radar": "niot",
-   "product": "maxz",
-   "lat": 12.3708,
-   "lon": 80.1901,
-   "max_dbz": 49.8,
-   "area_km2": 16.9,
-   "trend": "steady",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 13.9,
-   "bearing_deg": 229.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     12.3297,
-     80.1417
-    ],
-    "60": [
-     12.2886,
-     80.0933
-    ],
-    "90": [
-     12.2475,
-     80.045
+     11.9933,
+     79.9286
     ]
    }
   },
@@ -367,10 +351,10 @@
    "id": 1,
    "radar": "karaikal",
    "product": "kkl_maxz",
-   "lat": 12.0786,
-   "lon": 80.3613,
+   "lat": 12.0662,
+   "lon": 80.3568,
    "max_dbz": 50.1,
-   "area_km2": 302.6,
+   "area_km2": 338.6,
    "trend": "steady",
    "elevated": true,
    "confirmed_at_surface": false,
@@ -379,16 +363,16 @@
    "motion_reliable": true,
    "projected": {
     "30": [
-     11.9831,
-     80.3093
+     11.9707,
+     80.3049
     ],
     "60": [
-     11.8877,
-     80.2574
+     11.8753,
+     80.253
     ],
     "90": [
-     11.7922,
-     80.2055
+     11.7798,
+     80.2011
     ]
    }
   },
@@ -396,28 +380,28 @@
    "id": 4,
    "radar": "karaikal",
    "product": "kkl_maxz",
-   "lat": 11.869,
-   "lon": 80.7443,
-   "max_dbz": 42.0,
-   "area_km2": 49.8,
-   "trend": "unknown",
+   "lat": 11.8354,
+   "lon": 80.7284,
+   "max_dbz": 41.8,
+   "area_km2": 59.0,
+   "trend": "steady",
    "elevated": false,
    "confirmed_at_surface": false,
-   "speed_kmh": 16.2,
-   "bearing_deg": 210.0,
+   "speed_kmh": 20.3,
+   "bearing_deg": 215.0,
    "motion_reliable": true,
    "projected": {
     "30": [
-     11.8058,
-     80.707
+     11.7605,
+     80.6748
     ],
     "60": [
-     11.7426,
-     80.6697
+     11.6856,
+     80.6212
     ],
     "90": [
-     11.6794,
-     80.6325
+     11.6107,
+     80.5676
     ]
    }
   },
@@ -425,10 +409,10 @@
    "id": 8,
    "radar": "karaikal",
    "product": "kkl_maxz",
-   "lat": 11.8781,
-   "lon": 80.3271,
+   "lat": 11.8502,
+   "lon": 80.2809,
    "max_dbz": 37.7,
-   "area_km2": 13.8,
+   "area_km2": 7.4,
    "trend": "steady",
    "elevated": false,
    "confirmed_at_surface": false,
@@ -437,16 +421,16 @@
    "motion_reliable": true,
    "projected": {
     "30": [
-     11.7622,
-     80.2909
+     11.7344,
+     80.2447
     ],
     "60": [
-     11.6464,
-     80.2547
+     11.6185,
+     80.2085
     ],
     "90": [
-     11.5305,
-     80.2185
+     11.5026,
+     80.1723
     ]
    }
   },
@@ -538,158 +522,28 @@
    }
   },
   {
-   "id": 7,
+   "id": 2,
    "radar": "chennai",
    "product": "cni_maxz",
-   "lat": 13.6619,
-   "lon": 80.894,
-   "max_dbz": 46.2,
-   "area_km2": 45.0,
-   "trend": "weakening",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 23.9,
-   "bearing_deg": 229.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     13.5913,
-     80.8103
-    ],
-    "60": [
-     13.5207,
-     80.7267
-    ],
-    "90": [
-     13.45,
-     80.6431
-    ]
-   }
-  },
-  {
-   "id": 24,
-   "radar": "chennai",
-   "product": "cni_maxz",
-   "lat": 13.047,
-   "lon": 80.7226,
-   "max_dbz": 50.1,
-   "area_km2": 30.0,
+   "lat": 14.854,
+   "lon": 80.9884,
+   "max_dbz": 37.3,
+   "area_km2": 6.0,
    "trend": "unknown",
    "elevated": false,
    "confirmed_at_surface": false,
-   "speed_kmh": 23.5,
-   "bearing_deg": 216.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     12.9614,
-     80.6587
-    ],
-    "60": [
-     12.8757,
-     80.5948
-    ],
-    "90": [
-     12.7901,
-     80.531
-    ]
-   }
-  },
-  {
-   "id": 32,
-   "radar": "chennai",
-   "product": "cni_maxz",
-   "lat": 12.4017,
-   "lon": 80.3409,
-   "max_dbz": 46.2,
-   "area_km2": 157.0,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 29.5,
-   "bearing_deg": 216.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     12.2942,
-     80.261
-    ],
-    "60": [
-     12.1867,
-     80.181
-    ],
-    "90": [
-     12.0792,
-     80.101
-    ]
-   }
-  },
-  {
-   "id": 33,
-   "radar": "chennai",
-   "product": "cni_maxz",
-   "lat": 12.3517,
-   "lon": 81.1773,
-   "max_dbz": 46.2,
-   "area_km2": 36.0,
-   "trend": "steady",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 20.4,
-   "bearing_deg": 226.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     12.2878,
-     81.1096
-    ],
-    "60": [
-     12.224,
-     81.042
-    ],
-    "90": [
-     12.1602,
-     80.9743
-    ]
-   }
-  },
-  {
-   "id": 48,
-   "radar": "chennai",
-   "product": "cni_maxz",
-   "lat": 11.5533,
-   "lon": 80.3722,
-   "max_dbz": 38.9,
-   "area_km2": 25.0,
-   "trend": "steady",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 16.7,
-   "bearing_deg": 218.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     11.494,
-     80.3249
-    ],
-    "60": [
-     11.4347,
-     80.2776
-    ],
-    "90": [
-     11.3755,
-     80.2304
-    ]
-   }
+   "speed_kmh": 0.7,
+   "bearing_deg": 242.0,
+   "motion_reliable": false
   },
   {
    "id": 1,
    "radar": "chennai",
-   "product": "cni_ppi",
-   "lat": 14.1721,
-   "lon": 80.3495,
+   "product": "cni_maxz",
+   "lat": 14.1587,
+   "lon": 80.3296,
    "max_dbz": 46.2,
-   "area_km2": 2.7,
+   "area_km2": 26.0,
    "trend": "steady",
    "elevated": false,
    "confirmed_at_surface": false,
@@ -698,16 +552,132 @@
    "motion_reliable": true,
    "projected": {
     "30": [
-     14.0747,
-     80.259
+     14.0613,
+     80.2391
     ],
     "60": [
-     13.9772,
-     80.1686
+     13.9639,
+     80.1487
     ],
     "90": [
-     13.8798,
-     80.0781
+     13.8664,
+     80.0582
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "radar": "chennai",
+   "product": "cni_maxz",
+   "lat": 13.913,
+   "lon": 80.6278,
+   "max_dbz": 46.2,
+   "area_km2": 19.0,
+   "trend": "unknown",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 32.2,
+   "bearing_deg": 219.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     13.8003,
+     80.5338
+    ],
+    "60": [
+     13.6875,
+     80.4397
+    ],
+    "90": [
+     13.5748,
+     80.3457
+    ]
+   }
+  },
+  {
+   "id": 11,
+   "radar": "chennai",
+   "product": "cni_maxz",
+   "lat": 13.6398,
+   "lon": 80.8506,
+   "max_dbz": 46.2,
+   "area_km2": 59.0,
+   "trend": "weakening",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 23.9,
+   "bearing_deg": 229.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     13.5692,
+     80.767
+    ],
+    "60": [
+     13.4986,
+     80.6834
+    ],
+    "90": [
+     13.428,
+     80.5998
+    ]
+   }
+  },
+  {
+   "id": 26,
+   "radar": "chennai",
+   "product": "cni_maxz",
+   "lat": 13.0632,
+   "lon": 81.714,
+   "max_dbz": 42.0,
+   "area_km2": 21.0,
+   "trend": "unknown",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 16.7,
+   "bearing_deg": 218.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     13.0039,
+     81.6664
+    ],
+    "60": [
+     12.9446,
+     81.6189
+    ],
+    "90": [
+     12.8853,
+     81.5713
+    ]
+   }
+  },
+  {
+   "id": 27,
+   "radar": "chennai",
+   "product": "cni_maxz",
+   "lat": 13.0747,
+   "lon": 81.8609,
+   "max_dbz": 37.3,
+   "area_km2": 6.0,
+   "trend": "unknown",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 15.8,
+   "bearing_deg": 212.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     13.0144,
+     81.8221
+    ],
+    "60": [
+     12.954,
+     81.7834
+    ],
+    "90": [
+     12.8937,
+     81.7447
     ]
    }
   },
@@ -741,64 +711,6 @@
    }
   },
   {
-   "id": 6,
-   "radar": "chennai",
-   "product": "cni_ppi",
-   "lat": 13.9478,
-   "lon": 80.6414,
-   "max_dbz": 46.2,
-   "area_km2": 1.8,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 32.2,
-   "bearing_deg": 219.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     13.8351,
-     80.5474
-    ],
-    "60": [
-     13.7224,
-     80.4533
-    ],
-    "90": [
-     13.6096,
-     80.3592
-    ]
-   }
-  },
-  {
-   "id": 18,
-   "radar": "chennai",
-   "product": "cni_ppi",
-   "lat": 13.6089,
-   "lon": 80.7388,
-   "max_dbz": 38.3,
-   "area_km2": 1.8,
-   "trend": "weakening",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 25.8,
-   "bearing_deg": 219.0,
-   "motion_reliable": true,
-   "projected": {
-    "30": [
-     13.5186,
-     80.6635
-    ],
-    "60": [
-     13.4283,
-     80.5883
-    ],
-    "90": [
-     13.338,
-     80.513
-    ]
-   }
-  },
-  {
    "id": 31,
    "radar": "chennai",
    "product": "cni_ppi",
@@ -824,6 +736,93 @@
     "90": [
      13.0887,
      81.0411
+    ]
+   }
+  },
+  {
+   "id": 44,
+   "radar": "chennai",
+   "product": "cni_ppi",
+   "lat": 13.0497,
+   "lon": 80.7225,
+   "max_dbz": 50.1,
+   "area_km2": 3.0,
+   "trend": "unknown",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 23.5,
+   "bearing_deg": 216.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     12.9641,
+     80.6586
+    ],
+    "60": [
+     12.8784,
+     80.5948
+    ],
+    "90": [
+     12.7928,
+     80.5309
+    ]
+   }
+  },
+  {
+   "id": 53,
+   "radar": "chennai",
+   "product": "cni_ppi",
+   "lat": 12.7991,
+   "lon": 80.6676,
+   "max_dbz": 46.2,
+   "area_km2": 1.3,
+   "trend": "unknown",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 20.1,
+   "bearing_deg": 219.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     12.7287,
+     80.6092
+    ],
+    "60": [
+     12.6584,
+     80.5508
+    ],
+    "90": [
+     12.588,
+     80.4923
+    ]
+   }
+  },
+  {
+   "id": 67,
+   "radar": "chennai",
+   "product": "cni_ppi",
+   "lat": 12.3533,
+   "lon": 81.1755,
+   "max_dbz": 46.2,
+   "area_km2": 4.1,
+   "trend": "steady",
+   "elevated": false,
+   "confirmed_at_surface": false,
+   "speed_kmh": 20.4,
+   "bearing_deg": 226.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     12.2894,
+     81.1079
+    ],
+    "60": [
+     12.2256,
+     81.0402
+    ],
+    "90": [
+     12.1618,
+     80.9725
     ]
    }
   },
@@ -855,28 +854,13 @@
      80.6026
     ]
    }
-  },
-  {
-   "id": 2,
-   "radar": "mangalore",
-   "product": "mlr_maxz",
-   "lat": 13.0738,
-   "lon": 75.5166,
-   "max_dbz": 57.6,
-   "area_km2": 1.7,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 0.0,
-   "bearing_deg": 271.0,
-   "motion_reliable": false
   }
  ],
  "rain_areas": [
   {
-   "lat": 12.178,
-   "lon": 80.284,
-   "area_km2": 2047.0,
+   "lat": 12.183,
+   "lon": 80.278,
+   "area_km2": 2071.0,
    "max_dbz": 50.0,
    "mean_dbz": 33.0,
    "south": 11.82,
@@ -884,22 +868,36 @@
    "west": 80.02,
    "east": 80.62,
    "has_strong_core": true,
-   "speed_kmh": 23.4,
-   "bearing_deg": 215.0
+   "speed_kmh": 25.4,
+   "bearing_deg": 212.0
   },
   {
-   "lat": 13.025,
-   "lon": 80.535,
-   "area_km2": 936.0,
-   "max_dbz": 55.0,
+   "lat": 13.406,
+   "lon": 80.962,
+   "area_km2": 1457.0,
+   "max_dbz": 50.0,
    "mean_dbz": 33.0,
-   "south": 12.88,
-   "north": 13.18,
-   "west": 80.34,
-   "east": 80.82,
+   "south": 13.16,
+   "north": 13.72,
+   "west": 80.66,
+   "east": 81.3,
    "has_strong_core": true,
    "speed_kmh": 21.9,
-   "bearing_deg": 215.0
+   "bearing_deg": 222.0
+  },
+  {
+   "lat": 12.998,
+   "lon": 80.533,
+   "area_km2": 1071.0,
+   "max_dbz": 53.0,
+   "mean_dbz": 33.0,
+   "south": 12.82,
+   "north": 13.18,
+   "west": 80.32,
+   "east": 80.82,
+   "has_strong_core": true,
+   "speed_kmh": 25.0,
+   "bearing_deg": 211.0
   },
   {
    "lat": 8.168,
@@ -912,22 +910,8 @@
    "west": 79.18,
    "east": 79.72,
    "has_strong_core": false,
-   "speed_kmh": 18.8,
-   "bearing_deg": 213.0
-  },
-  {
-   "lat": 13.45,
-   "lon": 80.941,
-   "area_km2": 700.0,
-   "max_dbz": 50.0,
-   "mean_dbz": 34.0,
-   "south": 13.16,
-   "north": 13.72,
-   "west": 80.8,
-   "east": 81.06,
-   "has_strong_core": true,
-   "speed_kmh": 21.8,
-   "bearing_deg": 224.0
+   "speed_kmh": 20.5,
+   "bearing_deg": 212.0
   },
   {
    "lat": 10.718,
@@ -944,34 +928,6 @@
    "bearing_deg": 199.0
   },
   {
-   "lat": 12.05,
-   "lon": 72.983,
-   "area_km2": 410.0,
-   "max_dbz": 30.0,
-   "mean_dbz": 30.0,
-   "south": 11.94,
-   "north": 12.12,
-   "west": 72.8,
-   "east": 73.14,
-   "has_strong_core": false,
-   "speed_kmh": 0.6,
-   "bearing_deg": 118.0
-  },
-  {
-   "lat": 11.556,
-   "lon": 80.278,
-   "area_km2": 377.0,
-   "max_dbz": 45.0,
-   "mean_dbz": 32.0,
-   "south": 11.48,
-   "north": 11.64,
-   "west": 80.14,
-   "east": 80.44,
-   "has_strong_core": true,
-   "speed_kmh": 21.7,
-   "bearing_deg": 213.0
-  },
-  {
    "lat": 10.491,
    "lon": 80.551,
    "area_km2": 363.0,
@@ -986,18 +942,32 @@
    "bearing_deg": 186.0
   },
   {
-   "lat": 11.856,
-   "lon": 80.712,
-   "area_km2": 256.0,
+   "lat": 11.837,
+   "lon": 80.705,
+   "area_km2": 280.0,
    "max_dbz": 42.0,
-   "mean_dbz": 35.0,
-   "south": 11.8,
+   "mean_dbz": 36.0,
+   "south": 11.78,
    "north": 11.9,
    "west": 80.56,
    "east": 80.84,
    "has_strong_core": true,
-   "speed_kmh": 20.2,
+   "speed_kmh": 21.5,
    "bearing_deg": 214.0
+  },
+  {
+   "lat": 11.549,
+   "lon": 80.226,
+   "area_km2": 261.0,
+   "max_dbz": 45.0,
+   "mean_dbz": 31.0,
+   "south": 11.48,
+   "north": 11.62,
+   "west": 80.14,
+   "east": 80.34,
+   "has_strong_core": true,
+   "speed_kmh": 22.4,
+   "bearing_deg": 212.0
   },
   {
    "lat": 10.189,
@@ -1012,6 +982,34 @@
    "has_strong_core": false,
    "speed_kmh": 4.6,
    "bearing_deg": 111.0
+  },
+  {
+   "lat": 14.008,
+   "lon": 80.923,
+   "area_km2": 230.0,
+   "max_dbz": 46.0,
+   "mean_dbz": 33.0,
+   "south": 13.88,
+   "north": 14.12,
+   "west": 80.84,
+   "east": 81.02,
+   "has_strong_core": true,
+   "speed_kmh": 26.1,
+   "bearing_deg": 219.0
+  },
+  {
+   "lat": 12.325,
+   "lon": 81.115,
+   "area_km2": 221.0,
+   "max_dbz": 46.0,
+   "mean_dbz": 30.0,
+   "south": 12.24,
+   "north": 12.38,
+   "west": 81.0,
+   "east": 81.2,
+   "has_strong_core": true,
+   "speed_kmh": 21.7,
+   "bearing_deg": 219.0
   },
   {
    "lat": 10.009,
@@ -1056,60 +1054,32 @@
    "bearing_deg": 195.0
   },
   {
-   "lat": 14.013,
-   "lon": 80.946,
-   "area_km2": 186.0,
-   "max_dbz": 46.0,
-   "mean_dbz": 32.0,
-   "south": 13.88,
-   "north": 14.12,
-   "west": 80.88,
-   "east": 81.02,
-   "has_strong_core": true,
-   "speed_kmh": 26.7,
-   "bearing_deg": 220.0
-  },
-  {
-   "lat": 12.334,
-   "lon": 81.119,
-   "area_km2": 178.0,
-   "max_dbz": 46.0,
-   "mean_dbz": 32.0,
-   "south": 12.28,
-   "north": 12.38,
-   "west": 81.0,
-   "east": 81.2,
-   "has_strong_core": true,
-   "speed_kmh": 21.9,
-   "bearing_deg": 221.0
-  },
-  {
-   "lat": 13.936,
-   "lon": 80.638,
-   "area_km2": 177.0,
-   "max_dbz": 46.0,
-   "mean_dbz": 32.0,
-   "south": 13.88,
-   "north": 14.0,
-   "west": 80.54,
-   "east": 80.74,
-   "has_strong_core": true,
-   "speed_kmh": 28.9,
-   "bearing_deg": 219.0
-  },
-  {
-   "lat": 13.135,
-   "lon": 80.074,
-   "area_km2": 173.0,
-   "max_dbz": 50.0,
-   "mean_dbz": 29.0,
-   "south": 13.08,
+   "lat": 13.129,
+   "lon": 80.078,
+   "area_km2": 163.0,
+   "max_dbz": 41.0,
+   "mean_dbz": 26.0,
+   "south": 13.06,
    "north": 13.22,
    "west": 80.0,
    "east": 80.18,
    "has_strong_core": true,
-   "speed_kmh": 12.6,
-   "bearing_deg": 215.0
+   "speed_kmh": 11.7,
+   "bearing_deg": 196.0
+  },
+  {
+   "lat": 13.946,
+   "lon": 80.642,
+   "area_km2": 134.0,
+   "max_dbz": 46.0,
+   "mean_dbz": 32.0,
+   "south": 13.9,
+   "north": 14.0,
+   "west": 80.54,
+   "east": 80.74,
+   "has_strong_core": true,
+   "speed_kmh": 28.8,
+   "bearing_deg": 219.0
   },
   {
    "lat": 9.931,
@@ -1126,6 +1096,48 @@
    "bearing_deg": 115.0
   },
   {
+   "lat": 14.132,
+   "lon": 80.3,
+   "area_km2": 124.0,
+   "max_dbz": 46.0,
+   "mean_dbz": 33.0,
+   "south": 14.08,
+   "north": 14.18,
+   "west": 80.2,
+   "east": 80.4,
+   "has_strong_core": true,
+   "speed_kmh": 28.3,
+   "bearing_deg": 225.0
+  },
+  {
+   "lat": 13.839,
+   "lon": 80.581,
+   "area_km2": 120.0,
+   "max_dbz": 37.0,
+   "mean_dbz": 30.0,
+   "south": 13.78,
+   "north": 13.88,
+   "west": 80.52,
+   "east": 80.64,
+   "has_strong_core": true,
+   "speed_kmh": 28.1,
+   "bearing_deg": 219.0
+  },
+  {
+   "lat": 12.698,
+   "lon": 81.37,
+   "area_km2": 111.0,
+   "max_dbz": 26.0,
+   "mean_dbz": 23.0,
+   "south": 12.64,
+   "north": 12.78,
+   "west": 81.3,
+   "east": 81.44,
+   "has_strong_core": false,
+   "speed_kmh": 21.3,
+   "bearing_deg": 219.0
+  },
+  {
    "lat": 11.704,
    "lon": 80.234,
    "area_km2": 106.0,
@@ -1136,8 +1148,8 @@
    "west": 80.2,
    "east": 80.26,
    "has_strong_core": true,
-   "speed_kmh": 22.5,
-   "bearing_deg": 214.0
+   "speed_kmh": 23.5,
+   "bearing_deg": 213.0
   },
   {
    "lat": 13.3,
@@ -1150,8 +1162,8 @@
    "west": 80.22,
    "east": 80.36,
    "has_strong_core": false,
-   "speed_kmh": 19.6,
-   "bearing_deg": 218.0
+   "speed_kmh": 20.9,
+   "bearing_deg": 213.0
   },
   {
    "lat": 10.946,
@@ -1166,20 +1178,6 @@
    "has_strong_core": true,
    "speed_kmh": 15.9,
    "bearing_deg": 198.0
-  },
-  {
-   "lat": 13.583,
-   "lon": 80.729,
-   "area_km2": 96.0,
-   "max_dbz": 38.0,
-   "mean_dbz": 31.0,
-   "south": 13.52,
-   "north": 13.64,
-   "west": 80.66,
-   "east": 80.78,
-   "has_strong_core": true,
-   "speed_kmh": 23.4,
-   "bearing_deg": 222.0
   },
   {
    "lat": 9.459,
@@ -1210,6 +1208,20 @@
    "bearing_deg": 119.0
   },
   {
+   "lat": 12.353,
+   "lon": 80.883,
+   "area_km2": 91.0,
+   "max_dbz": 38.0,
+   "mean_dbz": 32.0,
+   "south": 12.28,
+   "north": 12.44,
+   "west": 80.84,
+   "east": 80.92,
+   "has_strong_core": true,
+   "speed_kmh": 22.2,
+   "bearing_deg": 215.0
+  },
+  {
    "lat": 10.862,
    "lon": 80.602,
    "area_km2": 87.0,
@@ -1234,7 +1246,7 @@
    "west": 80.66,
    "east": 80.74,
    "has_strong_core": false,
-   "speed_kmh": 22.6,
+   "speed_kmh": 23.1,
    "bearing_deg": 216.0
   },
   {
@@ -1248,50 +1260,36 @@
    "west": 81.54,
    "east": 81.64,
    "has_strong_core": false,
-   "speed_kmh": 19.3,
+   "speed_kmh": 20.1,
    "bearing_deg": 228.0
   },
   {
-   "lat": 13.242,
-   "lon": 81.257,
+   "lat": 13.063,
+   "lon": 81.705,
    "area_km2": 77.0,
-   "max_dbz": 46.0,
-   "mean_dbz": 34.0,
-   "south": 13.2,
-   "north": 13.28,
-   "west": 81.2,
-   "east": 81.3,
+   "max_dbz": 42.0,
+   "mean_dbz": 37.0,
+   "south": 13.02,
+   "north": 13.12,
+   "west": 81.68,
+   "east": 81.74,
    "has_strong_core": true,
-   "speed_kmh": 19.3,
-   "bearing_deg": 226.0
+   "speed_kmh": 21.3,
+   "bearing_deg": 227.0
   },
   {
-   "lat": 13.49,
-   "lon": 81.114,
-   "area_km2": 77.0,
-   "max_dbz": 38.0,
-   "mean_dbz": 32.0,
-   "south": 13.46,
-   "north": 13.52,
-   "west": 81.08,
-   "east": 81.16,
+   "lat": 14.852,
+   "lon": 81.027,
+   "area_km2": 76.0,
+   "max_dbz": 37.0,
+   "mean_dbz": 35.0,
+   "south": 14.82,
+   "north": 14.88,
+   "west": 80.96,
+   "east": 81.08,
    "has_strong_core": true,
-   "speed_kmh": 21.2,
-   "bearing_deg": 225.0
-  },
-  {
-   "lat": 8.591,
-   "lon": 76.868,
-   "area_km2": 73.0,
-   "max_dbz": 34.0,
-   "mean_dbz": 29.0,
-   "south": 8.56,
-   "north": 8.64,
-   "west": 76.84,
-   "east": 76.9,
-   "has_strong_core": false,
-   "speed_kmh": 0.1,
-   "bearing_deg": 98.0
+   "speed_kmh": 21.7,
+   "bearing_deg": 237.0
   },
   {
    "lat": 9.459,
@@ -1304,8 +1302,8 @@
    "west": 82.46,
    "east": 82.54,
    "has_strong_core": false,
-   "speed_kmh": 7.9,
-   "bearing_deg": 140.0
+   "speed_kmh": 8.0,
+   "bearing_deg": 141.0
   },
   {
    "lat": 11.278,
@@ -1318,8 +1316,22 @@
    "west": 80.16,
    "east": 80.22,
    "has_strong_core": false,
-   "speed_kmh": 19.8,
-   "bearing_deg": 200.0
+   "speed_kmh": 20.0,
+   "bearing_deg": 201.0
+  },
+  {
+   "lat": 13.824,
+   "lon": 80.764,
+   "area_km2": 67.0,
+   "max_dbz": 35.0,
+   "mean_dbz": 32.0,
+   "south": 13.78,
+   "north": 13.86,
+   "west": 80.72,
+   "east": 80.8,
+   "has_strong_core": false,
+   "speed_kmh": 26.3,
+   "bearing_deg": 219.0
   },
   {
    "lat": 10.173,
@@ -1336,18 +1348,18 @@
    "bearing_deg": 128.0
   },
   {
-   "lat": 12.381,
-   "lon": 80.891,
-   "area_km2": 63.0,
-   "max_dbz": 38.0,
-   "mean_dbz": 32.0,
-   "south": 12.34,
-   "north": 12.44,
-   "west": 80.86,
-   "east": 80.92,
+   "lat": 13.082,
+   "lon": 81.867,
+   "area_km2": 62.0,
+   "max_dbz": 37.0,
+   "mean_dbz": 34.0,
+   "south": 13.02,
+   "north": 13.16,
+   "west": 81.84,
+   "east": 81.88,
    "has_strong_core": true,
-   "speed_kmh": 21.9,
-   "bearing_deg": 218.0
+   "speed_kmh": 22.1,
+   "bearing_deg": 227.0
   },
   {
    "lat": 13.169,
@@ -1360,22 +1372,8 @@
    "west": 81.36,
    "east": 81.44,
    "has_strong_core": false,
-   "speed_kmh": 18.8,
+   "speed_kmh": 19.5,
    "bearing_deg": 227.0
-  },
-  {
-   "lat": 13.289,
-   "lon": 81.108,
-   "area_km2": 62.0,
-   "max_dbz": 38.0,
-   "mean_dbz": 32.0,
-   "south": 13.26,
-   "north": 13.32,
-   "west": 81.06,
-   "east": 81.16,
-   "has_strong_core": true,
-   "speed_kmh": 20.0,
-   "bearing_deg": 225.0
   },
   {
    "lat": 11.0,
@@ -1392,18 +1390,60 @@
    "bearing_deg": 179.0
   },
   {
-   "lat": 14.165,
-   "lon": 80.351,
-   "area_km2": 53.0,
-   "max_dbz": 46.0,
-   "mean_dbz": 33.0,
-   "south": 14.14,
-   "north": 14.18,
-   "west": 80.32,
-   "east": 80.4,
+   "lat": 11.599,
+   "lon": 80.406,
+   "area_km2": 58.0,
+   "max_dbz": 36.0,
+   "mean_dbz": 32.0,
+   "south": 11.56,
+   "north": 11.64,
+   "west": 80.38,
+   "east": 80.44,
    "has_strong_core": true,
-   "speed_kmh": 28.6,
-   "bearing_deg": 221.0
+   "speed_kmh": 22.7,
+   "bearing_deg": 214.0
+  },
+  {
+   "lat": 13.059,
+   "lon": 81.136,
+   "area_km2": 58.0,
+   "max_dbz": 38.0,
+   "mean_dbz": 32.0,
+   "south": 13.0,
+   "north": 13.12,
+   "west": 81.08,
+   "east": 81.18,
+   "has_strong_core": true,
+   "speed_kmh": 19.8,
+   "bearing_deg": 223.0
+  },
+  {
+   "lat": 13.392,
+   "lon": 80.537,
+   "area_km2": 58.0,
+   "max_dbz": 36.0,
+   "mean_dbz": 33.0,
+   "south": 13.34,
+   "north": 13.44,
+   "west": 80.5,
+   "east": 80.58,
+   "has_strong_core": true,
+   "speed_kmh": 23.9,
+   "bearing_deg": 216.0
+  },
+  {
+   "lat": 13.639,
+   "lon": 80.371,
+   "area_km2": 53.0,
+   "max_dbz": 49.0,
+   "mean_dbz": 34.0,
+   "south": 13.62,
+   "north": 13.66,
+   "west": 80.3,
+   "east": 80.42,
+   "has_strong_core": true,
+   "speed_kmh": 22.6,
+   "bearing_deg": 217.0
   },
   {
    "lat": 10.106,
@@ -1444,8 +1484,8 @@
    "west": 80.74,
    "east": 80.82,
    "has_strong_core": false,
-   "speed_kmh": 22.2,
-   "bearing_deg": 217.0
+   "speed_kmh": 22.8,
+   "bearing_deg": 214.0
   },
   {
    "lat": 11.332,
@@ -1460,6 +1500,34 @@
    "has_strong_core": true,
    "speed_kmh": 20.0,
    "bearing_deg": 199.0
+  },
+  {
+   "lat": 13.875,
+   "lon": 81.17,
+   "area_km2": 43.0,
+   "max_dbz": 30.0,
+   "mean_dbz": 25.0,
+   "south": 13.84,
+   "north": 13.92,
+   "west": 81.12,
+   "east": 81.2,
+   "has_strong_core": false,
+   "speed_kmh": 23.7,
+   "bearing_deg": 222.0
+  },
+  {
+   "lat": 14.218,
+   "lon": 80.129,
+   "area_km2": 43.0,
+   "max_dbz": 37.0,
+   "mean_dbz": 31.0,
+   "south": 14.18,
+   "north": 14.24,
+   "west": 80.1,
+   "east": 80.16,
+   "has_strong_core": true,
+   "speed_kmh": 26.9,
+   "bearing_deg": 228.0
   },
   {
    "lat": 11.185,
@@ -1486,36 +1554,36 @@
    "west": 80.08,
    "east": 80.14,
    "has_strong_core": false,
-   "speed_kmh": 20.5,
+   "speed_kmh": 20.7,
    "bearing_deg": 204.0
   },
   {
-   "lat": 12.668,
-   "lon": 81.322,
+   "lat": 12.77,
+   "lon": 80.649,
    "area_km2": 38.0,
-   "max_dbz": 26.0,
-   "mean_dbz": 24.0,
-   "south": 12.64,
-   "north": 12.7,
-   "west": 81.3,
-   "east": 81.34,
-   "has_strong_core": false,
-   "speed_kmh": 21.5,
-   "bearing_deg": 219.0
+   "max_dbz": 46.0,
+   "mean_dbz": 35.0,
+   "south": 12.72,
+   "north": 12.8,
+   "west": 80.62,
+   "east": 80.68,
+   "has_strong_core": true,
+   "speed_kmh": 25.3,
+   "bearing_deg": 212.0
   },
   {
-   "lat": 12.972,
+   "lat": 12.975,
    "lon": 80.112,
    "area_km2": 38.0,
-   "max_dbz": 36.0,
-   "mean_dbz": 23.0,
+   "max_dbz": 22.0,
+   "mean_dbz": 21.0,
    "south": 12.94,
    "north": 13.02,
    "west": 80.08,
    "east": 80.16,
-   "has_strong_core": true,
-   "speed_kmh": 15.0,
-   "bearing_deg": 210.0
+   "has_strong_core": false,
+   "speed_kmh": 15.3,
+   "bearing_deg": 199.0
   },
   {
    "lat": 13.01,
@@ -1542,7 +1610,7 @@
    "west": 81.48,
    "east": 81.52,
    "has_strong_core": false,
-   "speed_kmh": 19.2,
+   "speed_kmh": 19.8,
    "bearing_deg": 227.0
   },
   {
@@ -1560,20 +1628,6 @@
    "bearing_deg": 187.0
   },
   {
-   "lat": 9.59,
-   "lon": 76.941,
-   "area_km2": 29.0,
-   "max_dbz": 28.0,
-   "mean_dbz": 27.0,
-   "south": 9.58,
-   "north": 9.6,
-   "west": 76.92,
-   "east": 76.96,
-   "has_strong_core": false,
-   "speed_kmh": 1.7,
-   "bearing_deg": 274.0
-  },
-  {
    "lat": 11.903,
    "lon": 81.057,
    "area_km2": 29.0,
@@ -1584,92 +1638,36 @@
    "west": 81.04,
    "east": 81.08,
    "has_strong_core": false,
-   "speed_kmh": 21.7,
-   "bearing_deg": 220.0
+   "speed_kmh": 22.2,
+   "bearing_deg": 219.0
   },
   {
-   "lat": 12.327,
-   "lon": 73.28,
+   "lat": 13.392,
+   "lon": 80.449,
    "area_km2": 29.0,
-   "max_dbz": 30.0,
-   "mean_dbz": 30.0,
-   "south": 12.28,
-   "north": 12.36,
-   "west": 73.26,
-   "east": 73.3,
-   "has_strong_core": false,
-   "speed_kmh": 0.8,
-   "bearing_deg": 115.0
-  },
-  {
-   "lat": 12.743,
-   "lon": 81.427,
-   "area_km2": 29.0,
-   "max_dbz": 22.0,
-   "mean_dbz": 22.0,
-   "south": 12.7,
-   "north": 12.78,
-   "west": 81.42,
-   "east": 81.44,
-   "has_strong_core": false,
-   "speed_kmh": 22.0,
-   "bearing_deg": 220.0
-  },
-  {
-   "lat": 12.784,
-   "lon": 80.659,
-   "area_km2": 29.0,
-   "max_dbz": 46.0,
-   "mean_dbz": 35.0,
-   "south": 12.76,
-   "north": 12.8,
-   "west": 80.64,
-   "east": 80.68,
+   "max_dbz": 40.0,
+   "mean_dbz": 34.0,
+   "south": 13.36,
+   "north": 13.42,
+   "west": 80.44,
+   "east": 80.46,
    "has_strong_core": true,
-   "speed_kmh": 22.3,
-   "bearing_deg": 215.0
+   "speed_kmh": 23.7,
+   "bearing_deg": 216.0
   },
   {
-   "lat": 13.036,
-   "lon": 79.98,
+   "lat": 13.609,
+   "lon": 80.468,
    "area_km2": 29.0,
-   "max_dbz": 36.0,
-   "mean_dbz": 33.0,
-   "south": 13.02,
-   "north": 13.06,
-   "west": 79.96,
-   "east": 80.0,
+   "max_dbz": 37.0,
+   "mean_dbz": 31.0,
+   "south": 13.58,
+   "north": 13.64,
+   "west": 80.44,
+   "east": 80.5,
    "has_strong_core": true,
-   "speed_kmh": 10.5,
-   "bearing_deg": 210.0
-  },
-  {
-   "lat": 13.085,
-   "lon": 81.16,
-   "area_km2": 29.0,
-   "max_dbz": 38.0,
-   "mean_dbz": 35.0,
-   "south": 13.06,
-   "north": 13.12,
-   "west": 81.14,
-   "east": 81.18,
-   "has_strong_core": true,
-   "speed_kmh": 18.7,
-   "bearing_deg": 224.0
-  },
-  {
-   "lat": 9.526,
-   "lon": 76.352,
-   "area_km2": 24.0,
-   "max_dbz": 20.0,
-   "mean_dbz": 17.0,
-   "south": 9.5,
-   "north": 9.54,
-   "west": 76.34,
-   "east": 76.36,
-   "has_strong_core": false,
-   "speed_kmh": 1.4,
-   "bearing_deg": 272.0
+   "speed_kmh": 23.8,
+   "bearing_deg": 218.0
   },
   {
    "lat": 10.044,
@@ -1710,22 +1708,8 @@
    "west": 80.9,
    "east": 80.96,
    "has_strong_core": true,
-   "speed_kmh": 21.1,
-   "bearing_deg": 220.0
-  },
-  {
-   "lat": 12.376,
-   "lon": 73.368,
-   "area_km2": 24.0,
-   "max_dbz": 30.0,
-   "mean_dbz": 30.0,
-   "south": 12.36,
-   "north": 12.4,
-   "west": 73.36,
-   "east": 73.38,
-   "has_strong_core": false,
-   "speed_kmh": 0.8,
-   "bearing_deg": 114.0
+   "speed_kmh": 21.8,
+   "bearing_deg": 218.0
   },
   {
    "lat": 12.755,
@@ -1738,8 +1722,36 @@
    "west": 80.28,
    "east": 80.32,
    "has_strong_core": false,
+   "speed_kmh": 25.0,
+   "bearing_deg": 211.0
+  },
+  {
+   "lat": 13.028,
+   "lon": 79.988,
+   "area_km2": 24.0,
+   "max_dbz": 38.0,
+   "mean_dbz": 36.0,
+   "south": 13.02,
+   "north": 13.04,
+   "west": 79.96,
+   "east": 80.02,
+   "has_strong_core": true,
+   "speed_kmh": 9.5,
+   "bearing_deg": 181.0
+  },
+  {
+   "lat": 13.103,
+   "lon": 80.868,
+   "area_km2": 24.0,
+   "max_dbz": 30.0,
+   "mean_dbz": 26.0,
+   "south": 13.08,
+   "north": 13.12,
+   "west": 80.86,
+   "east": 80.88,
+   "has_strong_core": false,
    "speed_kmh": 22.8,
-   "bearing_deg": 214.0
+   "bearing_deg": 217.0
   },
   {
    "lat": 13.201,
@@ -1752,36 +1764,8 @@
    "west": 80.66,
    "east": 80.7,
    "has_strong_core": false,
-   "speed_kmh": 22.4,
-   "bearing_deg": 218.0
-  },
-  {
-   "lat": 13.407,
-   "lon": 80.858,
-   "area_km2": 24.0,
-   "max_dbz": 30.0,
-   "mean_dbz": 27.0,
-   "south": 13.4,
-   "north": 13.42,
-   "west": 80.84,
-   "east": 80.88,
-   "has_strong_core": false,
-   "speed_kmh": 21.5,
-   "bearing_deg": 224.0
-  },
-  {
-   "lat": 13.748,
-   "lon": 81.117,
-   "area_km2": 24.0,
-   "max_dbz": 34.0,
-   "mean_dbz": 29.0,
-   "south": 13.74,
-   "north": 13.76,
-   "west": 81.1,
-   "east": 81.14,
-   "has_strong_core": false,
-   "speed_kmh": 23.4,
-   "bearing_deg": 224.0
+   "speed_kmh": 24.4,
+   "bearing_deg": 215.0
   }
  ],
  "how_to_read": "Grid file: gunzip, then one unsigned byte per node, layers stacked in the order listed. byte position = layer_index * nrows * ncols + row * ncols + col, with row = round((lat_north - lat) / step_deg) and col = round((lon - lon_west) / step_deg). 0 = radar coverage but no echo, 255 = no usable radar coverage (do not read as dry), 1-254 = reflectivity in dBZ. IMD's images start at 20 dBZ, so rain lighter than that is not seen. Rough guide: 20-29 light, 30-39 moderate, 40-49 heavy, 50+ very heavy. plus_NN layers are the observed picture moved along the measured motion with no growth or decay, so check a neighbourhood that widens with lead time (about 5 km at 30 min, 10 km at 60, 15 km at 90). Do not answer from this file if generated_utc is more than 30 minutes old. Fetch the grid file with ?v=<version> to avoid a cached copy."
