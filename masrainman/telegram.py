@@ -36,6 +36,18 @@ def send_photo(chat_id, photo: bytes | str, caption: str = "", reply_markup: dic
     return call("sendPhoto", {"chat_id": chat_id, "photo": photo, "caption": caption, "reply_markup": reply_markup})
 
 
+def send_album(chat_id, photos: list[tuple[bytes, str]]) -> list[dict]:
+    """One album (2-10 photos, each with its own caption). A single photo is sent normally."""
+    photos = photos[:10]
+    if len(photos) == 1:
+        return [send_photo(chat_id, photos[0][0], photos[0][1])]
+    media, files = [], {}
+    for i, (img, cap) in enumerate(photos):
+        files[f"p{i}"] = (f"radar{i}.jpg", img, "image/jpeg")
+        media.append({"type": "photo", "media": f"attach://p{i}", "caption": cap})
+    return call("sendMediaGroup", {"chat_id": chat_id, "media": media}, files=files, timeout=120)
+
+
 def edit_photo(chat_id, message_id: int, photo: bytes, caption: str = "") -> dict:
     media = {"type": "photo", "media": "attach://photo", "caption": caption}
     return call("editMessageMedia", {"chat_id": chat_id, "message_id": message_id, "media": media},
