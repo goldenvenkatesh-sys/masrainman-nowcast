@@ -256,64 +256,77 @@ def _ist_short(generated_ist: str) -> str:
     try:
         from datetime import datetime
         d = datetime.strptime(generated_ist.replace(" IST", ""), "%d %b %Y %H:%M")
-        return d.strftime("%d %b, %I:%M %p").lstrip("0")
+        return d.strftime("%d %b, %I:%M %p").lstrip("0").replace(", 0", ", ")
     except Exception:
         return generated_ist
 
 
 def build_caption(nc: Nowcast, limit: int = 1000) -> str:
-    """Telegram photo captions max out at 1024 UTF-16 units; we stay under
-    `limit` by trimming the place lists, never the header/footer."""
-    head = [f"🌧️ {config.BRAND_NAME} | ரேடார் மழை அறிவிப்பு"]
-    if nc.region_en:
-        head.append(f"📍 {nc.region_en} | {nc.region_ta}")
-    head.append(f"🕒 {_ist_short(nc.generated_ist)} IST")
+    """Short, paragraph-style caption (readable without scrolling).
+
+    Places are grouped by rain strength, strongest first, inside one Tamil
+    paragraph and one English paragraph. Telegram photo captions max out at
+    1024 UTF-16 units; we stay under `limit` by dropping the least important
+    places (shown as "+N more"), never the header/footer."""
+    region = f" – {nc.region_ta} | {nc.region_en}" if nc.region_en else ""
+    head = f"🌧️ {config.BRAND_NAME} ரேடார் மழை அறிவிப்பு{region}\n🕒 {_ist_short(nc.generated_ist)} IST"
     foot = []
     if nc.motion_ok and nc.speed_kmh and nc.bearing_deg is not None and nc.speed_kmh >= 5:
         k = int(((nc.bearing_deg % 360) + 22.5) // 45) % 8
-        foot.append(f"🧭 Rain clouds moving {DIRS_EN[k]} ~{nc.speed_kmh:.0f} km/h | "
-                    f"மழை மேகங்கள் {DIRS_TA[k]} நோக்கி ~{nc.speed_kmh:.0f} கி.மீ/மணி வேகத்தில் நகர்கின்றன")
-    foot.append("ℹ️ IMD radar based experimental nowcast. Follow official IMD warnings. "
-                "| அதிகாரப்பூர்வ IMD அறிவிப்புகளைப் பின்பற்றவும்.")
-    foot.append(f"{config.HASHTAGS} {nc.hashtags}".strip())
+        foot.append(f"🧭 மழை மேகங்கள் {DIRS_TA[k]} நோக்கி ~{nc.speed_kmh:.0f} கி.மீ/மணி | "
+                    f"Moving {DIRS_EN[k]} ~{nc.speed_kmh:.0f} km/h")
+    foot.append("ℹ️ IMD ரேடார் சோதனை முன்னறிவிப்பு – அதிகாரப்பூர்வ IMD அறிவிப்புகளைப் பின்பற்றவும் | Follow official IMD warnings.")
+    tags = f"{config.HASHTAGS} {nc.hashtags}".strip()
+    if tags:
+        foot.append(tags)
+    foot_s = "\n".join(foot)
 
     if not nc.raining and not nc.coming:
-        mid = (["🌤️ No significant rain on radar right now. | தற்போது ரேடாரில் குறிப்பிடத்தக்க மழை இல்லை."]
+        mid = ("🌤️ தற்போது ரேடாரில் குறிப்பிடத்தக்க மழை இல்லை. | No significant rain on radar right now."
                if not nc.any_echo else
-               ["🌦️ Only light/scattered echoes on radar. | ரேடாரில் லேசான, ஆங்காங்கே மழை மேகங்கள் மட்டும்."])
-        return "\n".join(head + [""] + mid + [""] + foot)
+               "🌦️ ரேடாரில் லேசான, ஆங்காங்கே மழை மேகங்கள் மட்டும். | Only light/scattered echoes on radar.")
+        return f"{head}\n\n{mid}\n\n{foot_s}"
 
-    def now_line(p: PlaceStatus) -> str:
-        t = tier(p.now_dbz)
-        if p.near:
-            return f"{t[3]} Near {p.en} – {t[1]} | {p.ta} அருகே – {t[2]}"
-        return f"{t[3]} {p.en} – {t[1]} | {p.ta} – {t[2]}"
+    def now_groups(places, ta: bool) -> str:
+        groups: dict = {}
+        for p in places:
+            t = tier(p.now_dbz)
+            name = (f"{p.ta} அருகே" if p.near else p.ta) if ta else (f"near {p.en}" if p.near else p.en)
+            groups.setdefault(t, []).append(name)
+        parts = [f"{t[3]} {t[2] if ta else t[1]} – {', '.join(n)}"
+                 for t, n in sorted(groups.items(), key=lambda kv: -kv[0][0])]
+        return "; ".join(parts)
 
-    def soon_line(p: PlaceStatus) -> str:
-        t = tier(max(p.soon_dbz, config.ALERT_MIN_DBZ))
-        when = f"~{p.eta_clock}" if p.eta_clock else f"~{p.eta_min} min"
-        when_ta = f"~{p.eta_clock}" if p.eta_clock else f"~{p.eta_min} நிமி"
-        return f"{t[3]} {p.en} {when} – {t[1]} | {p.ta} {when_ta} – {t[2]}"
+    def soon_list(places, ta: bool) -> str:
+        out = []
+        for p in places:
+            t = tier(max(p.soon_dbz, config.ALERT_MIN_DBZ))
+            when = f"~{p.eta_clock}" if p.eta_clock else (f"~{p.eta_min} நிமி" if ta else f"~{p.eta_min} min")
+            out.append(f"{p.ta if ta else p.en} ({when}, {t[2] if ta else t[1].lower()})")
+        return ", ".join(out)
 
-    sections = [("🔴 RAINING NOW | இப்போது மழை", nc.raining, now_line),
-                ("⏱️ NEXT 60 MIN | அடுத்த 60 நிமிடங்களில்", nc.coming, soon_line)]
-    # Grow the lists one line at a time (alternating sections, important
-    # places first) until the caption would exceed the limit.
+    def more(n: int, ta: bool) -> str:
+        return (f" + மேலும் {n} இடங்கள்" if ta else f" + {n} more places") if n > 0 else ""
+
     picks = {0: [], 1: []}
-    queues = {i: list(s[1]) for i, s in enumerate(sections)}
+    queues = {0: list(nc.raining), 1: list(nc.coming)}
+    totals = {0: len(nc.raining), 1: len(nc.coming)}
 
     def render() -> str:
-        body = []
-        for i, (title, items, fn) in enumerate(sections):
-            if not picks[i]:
-                continue
-            body += [title] + [fn(p) for p in picks[i]]
-            more = len(items) - len(picks[i])
-            if more > 0:
-                body.append(f"   + {more} more places | மேலும் {more} இடங்கள்")
-            body.append("")
-        return "\n".join(head + [""] + body + foot)
+        paras = []
+        for ta in (True, False):
+            lines = []
+            if picks[0]:
+                lbl = "🔴 இப்போது மழை: " if ta else "🔴 Raining now: "
+                lines.append(lbl + now_groups(picks[0], ta) + more(totals[0] - len(picks[0]), ta) + ".")
+            if picks[1]:
+                lbl = "⏱️ அடுத்த 60 நிமிடங்களில்: " if ta else "⏱️ Next 60 min: "
+                lines.append(lbl + soon_list(picks[1], ta) + more(totals[1] - len(picks[1]), ta) + ".")
+            paras.append("\n".join(lines))
+        return f"{head}\n\n" + "\n\n".join(paras) + f"\n\n{foot_s}"
 
+    # Add places one at a time (alternating sections, most important first)
+    # until the caption would exceed the limit.
     progressed = True
     while progressed:
         progressed = False
@@ -322,7 +335,7 @@ def build_caption(nc: Nowcast, limit: int = 1000) -> str:
                 picks[i].append(queues[i].pop(0))
                 if _utf16_len(render()) > limit:
                     queues[i].insert(0, picks[i].pop())
-                    queues[i] = []          # this section is full
+                    queues[i] = []
                 else:
                     progressed = True
     return render()
