@@ -51,6 +51,31 @@ def _keyboard() -> dict:
                                 [{"text": "❌ No", "callback_data": "mr:no"}]]}
 
 
+def _forward(st: dict, key: str, image: bytes, caption: str) -> None:
+    """Send this region's card to TELEGRAM_FORWARD_CHAT_ID if its last copy is old enough.
+
+    Runs are every ~10 min with some GitHub delay, so allow 5 min of slack;
+    a 30-min setting then gives one post per region roughly every 30 min.
+    Never raises: a problem here must not disturb the main channel/approvals.
+    """
+    if not config.TELEGRAM_FORWARD_CHAT_ID:
+        return
+    try:
+        last = st.setdefault("forward_last_utc", {})
+        now = datetime.now(timezone.utc)
+        prev = last.get(key)
+        if prev:
+            age_min = (now - datetime.fromisoformat(prev)).total_seconds() / 60
+            if age_min < max(config.TELEGRAM_FORWARD_EVERY_MIN - 5, 1):
+                print(f"[social] {key}: forward skipped (last copy {age_min:.0f} min ago)")
+                return
+        m = tg.send_photo(config.TELEGRAM_FORWARD_CHAT_ID, image, caption)
+        last[key] = now.isoformat(timespec="seconds")
+        print(f"[social] {key}: copy {m['message_id']} sent to forward channel")
+    except Exception as e:
+        print(f"[social] {key}: forward to second channel failed: {e}")
+
+
 # ------------------------------------------------------------------ cycle --
 def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     """items: (region key, card path, caption) for every region with rain."""
@@ -90,6 +115,9 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
                     print(f"[social] {key}: channel post {m['message_id']} sent")
             except Exception as e:
                 print(f"[social] {key}: channel post failed: {e}")
+
+        # 1b) copy to the second channel, at most once every TELEGRAM_FORWARD_EVERY_MIN
+        _forward(st, key, image, caption)
 
         # 2) approval card in the admin's private chat
         if not (config.TELEGRAM_ADMIN_CHAT_ID and targets):

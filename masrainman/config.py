@@ -31,6 +31,11 @@ TELEGRAM_CHANNEL_ID = _env("TELEGRAM_CHANNEL_ID")
 # "new" = a new post every cycle, "edit" = keep ONE live post and keep
 # replacing its picture/caption (no feed spam).
 TELEGRAM_CHANNEL_MODE = _env("TELEGRAM_CHANNEL_MODE", "new").lower()
+# Second channel/group (e.g. the users' discussion channel) that gets a copy of
+# each region's radar card at most once every TELEGRAM_FORWARD_EVERY_MIN
+# minutes. "@channelusername" or "-100...". Leave empty to skip.
+TELEGRAM_FORWARD_CHAT_ID = _env("TELEGRAM_FORWARD_CHAT_ID")
+TELEGRAM_FORWARD_EVERY_MIN = int(_env("TELEGRAM_FORWARD_EVERY_MIN", "30"))
 # Your private chat with the bot -- where the Yes/No approval card arrives.
 TELEGRAM_ADMIN_CHAT_ID = _env("TELEGRAM_ADMIN_CHAT_ID")
 # Comma-separated Telegram user ids allowed to press "Yes". Defaults to the
