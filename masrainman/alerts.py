@@ -75,6 +75,11 @@ class Nowcast:
     hashtags: str = ""
     grid: object = None            # (layers array, grid meta) for the map renderer
     layer_times: dict = field(default_factory=dict)   # lead_min -> "6:11 PM"
+    # radar -> last frame time ("22 Oct 16:54 IST") for every radar whose
+    # IMD feed has gone stale this cycle (no product of it used); see
+    # _down_radars(). for_region() narrows it to the radars covering that
+    # region, and build_caption() then adds a "radar not updating" line.
+    down_radars: dict = field(default_factory=dict)
 
     @property
     def peak_tier(self):
@@ -180,6 +185,32 @@ def _add_near_towns(nc: "Nowcast", doc: dict) -> None:
     nc.coming = [p for p in nc.coming if p.en not in best_by_town]
 
 
+# Radar names for the "not updating" caption line (radar keys as in the
+# engine's RADAR_SITES / nowcast_bot.json "radars").
+RADAR_NAMES = {
+    "karaikal": ("Karaikal", "காரைக்கால்"),
+    "chennai": ("Chennai", "சென்னை"),
+    "niot": ("NIOT Chennai", "NIOT சென்னை"),
+    "mangalore": ("Mangaluru", "மங்களூரு"),
+    "trivandrum": ("Thiruvananthapuram", "திருவனந்தபுரம்"),
+    "kochi": ("Kochi", "கொச்சி"),
+}
+
+
+def _down_radars(doc: dict) -> dict:
+    """{radar: last frame time} for radars that IMD has stopped updating --
+    every product of that radar is stale and left off the map this cycle."""
+    by_radar: dict = {}
+    for r in doc.get("radars") or []:
+        by_radar.setdefault(r.get("radar"), []).append(r)
+    down = {}
+    for radar, rows in by_radar.items():
+        if radar and not any(x.get("used") for x in rows):
+            newest = max(rows, key=lambda x: x.get("obs_time_utc") or "")
+            down[radar] = newest.get("obs_time_ist") or ""
+    return down
+
+
 def build_nowcast() -> Nowcast | None:
     if not BOT_JSON.exists():
         return None
@@ -191,6 +222,7 @@ def build_nowcast() -> Nowcast | None:
     areas = doc.get("rain_areas") or []
     nc.any_echo = bool(areas)
     nc.max_dbz = max([a.get("max_dbz", 0) for a in areas] + [0])
+    nc.down_radars = _down_radars(doc)
 
     arr, g = _load_grid(doc)
     if arr is None:
@@ -235,16 +267,33 @@ def _clock(valid_ist: str) -> str:
 
 
 def for_region(nc: Nowcast, states: set, en: str, ta: str, hashtags: str = "",
-               zone=None) -> Nowcast:
+               zone=None, radars=None) -> Nowcast:
     """A copy of the nowcast that only talks about places in `states`
-    (and, if given, for which zone(lat, lon) is true)."""
+    (and, if given, for which zone(lat, lon) is true). `radars` = the radars
+    that cover this region; only those can trigger the "not updating" line."""
     from dataclasses import replace
 
     def keep(p):
         return p.state in states and (zone is None or zone(p.lat, p.lon))
+    down = {r: t for r, t in nc.down_radars.items() if radars and r in radars}
     return replace(nc, raining=[p for p in nc.raining if keep(p)],
                    coming=[p for p in nc.coming if keep(p)], region_en=en, region_ta=ta,
-                   hashtags=hashtags)
+                   hashtags=hashtags, down_radars=down)
+
+
+def radar_down_line(nc: Nowcast) -> str:
+    """'⚠️ காரைக்கால் ரேடார் ... | Karaikal radar not updating ...' or ''."""
+    if not nc.down_radars:
+        return ""
+    keys = [k for k in RADAR_NAMES if k in nc.down_radars] + \
+           [k for k in nc.down_radars if k not in RADAR_NAMES]
+    ta = ", ".join(RADAR_NAMES.get(k, (k.title(), k.title()))[1] for k in keys)
+    en = ", ".join(RADAR_NAMES.get(k, (k.title(), k.title()))[0] for k in keys)
+    times = [nc.down_radars[k] for k in keys if nc.down_radars[k]]
+    since = f" (last image {times[0].replace(' IST', '')} IST)" if len(keys) == 1 and times else ""
+    plural = "s" if len(keys) > 1 else ""
+    return (f"⚠️ {ta} ரேடார் IMD-யிடமிருந்து புதுப்பிக்கப்படவில்லை – சில இடங்களில் மழை விடுபடலாம். | "
+            f"{en} radar{plural} not updating from IMD{since} – rain in parts of this area may be missed.")
 
 
 def _utf16_len(s: str) -> int:
@@ -275,6 +324,9 @@ def build_caption(nc: Nowcast, limit: int = 1000) -> str:
         k = int(((nc.bearing_deg % 360) + 22.5) // 45) % 8
         foot.append(f"🧭 மழை மேகங்கள் {DIRS_TA[k]} நோக்கி ~{nc.speed_kmh:.0f} கி.மீ/மணி | "
                     f"Moving {DIRS_EN[k]} ~{nc.speed_kmh:.0f} km/h")
+    down = radar_down_line(nc)
+    if down:
+        foot.append(down)
     foot.append("ℹ️ IMD ரேடார் சோதனை முன்னறிவிப்பு – அதிகாரப்பூர்வ IMD அறிவிப்புகளைப் பின்பற்றவும் | Follow official IMD warnings.")
     tags = f"{config.HASHTAGS} {nc.hashtags}".strip()
     if tags:

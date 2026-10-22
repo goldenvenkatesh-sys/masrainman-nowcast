@@ -17,7 +17,7 @@ from masrainman.social import process_pending_updates, publish_cycle
 def build_items(engine):
     from masrainman.alerts import BOT_JSON, build_caption, build_nowcast, for_region
     from masrainman.card import MAP_BOX, render_card
-    from masrainman.regions import ENABLED, HASHTAGS, REGIONS, VIEW_LAT_DEG, best_window, fit_view, in_view
+    from masrainman.regions import ENABLED, HASHTAGS, REGION_RADARS, REGIONS, VIEW_LAT_DEG, best_window, fit_view, in_view
 
     nc = build_nowcast()
     doc = json.loads(BOT_JSON.read_text()) if BOT_JSON.exists() else {}
@@ -35,7 +35,7 @@ def build_items(engine):
     for key, en, ta, bbox, states, zone in REGIONS:
         if key not in ENABLED:
             continue
-        rnc = for_region(nc, states, en, ta, HASHTAGS.get(key, ""), zone)
+        rnc = for_region(nc, states, en, ta, HASHTAGS.get(key, ""), zone, REGION_RADARS.get(key))
         if not (rnc.raining or rnc.coming):
             print(f"[cycle] {key}: no moderate+ rain at any town -- no card")
             continue
