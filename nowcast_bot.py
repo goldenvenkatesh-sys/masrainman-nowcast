@@ -882,7 +882,37 @@ PRODUCTS = {
         # -- and worth checking first whether a future false patch is
         # terrain that outlasted this mask's sample window or genuine echo
         # before assuming it's a bug.
-        "static_exclude_mask": "masks/mlr_maxz_static_exclude.png",
+        # REPLACED 22 Oct 2026: the static_exclude_mask above (described in
+        # the long comment) blanked ~86% of the panel PERMANENTLY -- every
+        # terrain pixel was excluded by LOCATION, so real rain over Udupi,
+        # Dakshina Kannada, the Ghats, Kodagu, Hassan etc. was thrown away
+        # however strong it was; only patches over open sea and a thin
+        # coastal strip ever survived (reported with a live 11:00 UTC frame
+        # vs the MasRainman card). Now the terrain is removed by COLOUR
+        # CHANGE instead: background_image is the per-pixel median of 271
+        # real frames (18-22 Oct 2026, i.e. what each pixel looks like with
+        # no echo on it), and a pixel only counts as echo when it both
+        # matches a dBZ swatch AND differs from its own background colour
+        # by more than background_tolerance RGB units. Checked on all 271
+        # frames: quiet frames decode to 2-3 px, no pixel reads as echo in
+        # more than 40% of frames, and the 11:00 UTC 22 Oct frame went from
+        # 1,642 to ~9,500 echo px (322 -> ~1,470 px at >= 35 dBZ), matching
+        # the IMD picture. Rebuild with tools/build_mlr_background.py if
+        # IMD ever changes the basemap.
+        "background_image": "masks/mlr_maxz_background.png",
+        "background_tolerance": 25.0,
+        # If more than this fraction of the panel differs from the
+        # background, the frame is broken (21 Oct 2026 21:50 UTC arrived
+        # with its lower half shifted sideways) or IMD changed the basemap
+        # -- skip the frame rather than plot garbage.
+        "background_corrupt_frac": 0.20,
+        # The colour bar has its tick values printed in white ON the
+        # swatches ("57.3", "60.0" ...), so the sampled middle column also
+        # picked up white/pink text and edge colours (1-4 rows each) that
+        # got matched as 50-57 dBZ -- a single white pixel next to a cell
+        # turned a moderate storm into "Very heavy" (Moodbidri, 22 Oct
+        # 2026). The 16 real swatches are 20-29 rows tall; keep only those.
+        "min_swatch_rows": 8,
         # See decode_reflectivity's erode_thin_residual comment -- cleans
         # up thin border-line fragments the static mask's tolerance
         # doesn't catch, without touching real storm blobs.
@@ -1504,6 +1534,36 @@ def get_static_exclude_mask(product: str) -> np.ndarray | None:
     return _static_mask_cache[product]
 
 
+_background_cache: dict[str, np.ndarray] = {}
+
+
+def get_background_image(product: str) -> np.ndarray | None:
+    """Echo-free background colour of each plot_bbox pixel (float RGB,
+    same shape as the plot_bbox crop), for products whose basemap is a
+    full-colour terrain layer -- see PRODUCTS["mlr_maxz"]["background_image"]."""
+    path = PRODUCTS[product].get("background_image")
+    if not path:
+        return None
+    if product not in _background_cache:
+        _background_cache[product] = np.array(Image.open(path).convert("RGB"), dtype=float)
+    return _background_cache[product]
+
+
+def frame_looks_corrupted(img: Image.Image, product: str) -> bool:
+    """True when too much of the panel differs from the product's known
+    background -- a broken/shifted IMD GIF or a changed basemap. Only for
+    products with a background_image; always False otherwise."""
+    cfg = PRODUCTS[product]
+    bg = get_background_image(product)
+    if bg is None:
+        return False
+    arr = np.array(img.convert("RGB").crop(cfg["plot_bbox"]), dtype=float)
+    if arr.shape != bg.shape:
+        return True
+    frac = float((np.linalg.norm(arr - bg, axis=2) > cfg.get("background_tolerance", 25.0)).mean())
+    return frac > cfg.get("background_corrupt_frac", 0.20)
+
+
 def nearest_dbz(pixel_rgb: tuple[int, int, int],
                  lut: list[tuple[tuple[int, int, int], float]]) -> float | None:
     """Single-pixel lookup — kept for occasional ad-hoc use, but
@@ -1698,6 +1758,14 @@ def decode_reflectivity(img: Image.Image, product: str, lut: list) -> np.ndarray
     static_mask = get_static_exclude_mask(product)
     if static_mask is not None:
         dbz[static_mask] = np.nan
+
+    bg = get_background_image(product)
+    if bg is not None:
+        # See PRODUCTS["mlr_maxz"]["background_image"]: keep a swatch-
+        # matching pixel only where it has actually changed colour from the
+        # echo-free terrain/sea background at that same spot.
+        bg_dist = np.linalg.norm(arr - bg, axis=2)
+        dbz[bg_dist < cfg.get("background_tolerance", 25.0)] = np.nan
 
     mask_within_km = cfg.get("mask_within_km")
     if mask_within_km is not None:
@@ -3641,6 +3709,11 @@ def poll_and_decode(product: str, state: dict, prev_cells: dict, prev_obs_time: 
         img.load()
     except (UnidentifiedImageError, OSError) as e:
         print(f"[poll] {product}: fetched data isn't a valid image - skipping this cycle: {e}")
+        return None
+
+    if frame_looks_corrupted(img, product):
+        print(f"[poll] {product}: frame doesn't match its known background (broken/shifted GIF "
+              f"or changed basemap) - skipping this cycle")
         return None
 
     obs_time = extract_observation_time(img, product)
