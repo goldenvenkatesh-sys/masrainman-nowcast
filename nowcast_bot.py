@@ -1564,6 +1564,41 @@ def frame_looks_corrupted(img: Image.Image, product: str) -> bool:
     return frac > cfg.get("background_corrupt_frac", 0.20)
 
 
+# A frame that decodes to echo over most of the panel AND whose echo jumps
+# by more than 8 dBZ between neighbouring pixels is not radar data.
+# 23 Oct 2026: Karaikal (kkl_maxz from 05:02 UTC, kkl_ppz from 11:04 UTC)
+# served a same-size "RADAR UNDER MAINTENANCE" photo of the radar building
+# in place of its scan. Its blue walls and grey sky matched swatches and
+# decoded as 58-70% echo, 26-32% of the panel >= 45 dBZ, so Karaikal's
+# 500 km circle painted "intense/extreme" rain over Chennai, Kerala and the
+# Mangaluru side. Every real frame archived that day stayed under 8% echo,
+# 0% >= 45 dBZ and 5% neighbour jumps (the photo: 19-26%). Coverage alone
+# could also be a cyclone filling the panel, which is why both must hold.
+IMPLAUSIBLE_ECHO_FRAC = 0.50
+IMPLAUSIBLE_STRONG_DBZ = 45.0
+IMPLAUSIBLE_STRONG_FRAC = 0.10
+IMPLAUSIBLE_JUMP_DBZ = 8.0
+IMPLAUSIBLE_JUMP_FRAC = 0.12
+
+
+def frame_looks_implausible(dbz: np.ndarray, product: str) -> bool:
+    """True when a decoded frame can't be real radar data -- a placeholder
+    image (maintenance photo, "no data" card) served at the usual URL."""
+    echo_frac = float((~np.isnan(dbz)).mean())
+    strong_frac = float((np.nan_to_num(dbz, nan=0.0) >= IMPLAUSIBLE_STRONG_DBZ).mean())
+    if echo_frac <= IMPLAUSIBLE_ECHO_FRAC and strong_frac <= IMPLAUSIBLE_STRONG_FRAC:
+        return False
+    a, b = dbz[:, :-1], dbz[:, 1:]
+    both = ~np.isnan(a) & ~np.isnan(b)
+    jump_frac = float((np.abs(a - b)[both] > IMPLAUSIBLE_JUMP_DBZ).mean()) if both.any() else 0.0
+    if jump_frac <= IMPLAUSIBLE_JUMP_FRAC:
+        return False
+    print(f"[poll] {product}: decoded frame is {echo_frac:.0%} echo, {strong_frac:.0%} >= "
+          f"{IMPLAUSIBLE_STRONG_DBZ:.0f} dBZ, {jump_frac:.0%} speckle -- not radar data "
+          f"(placeholder/maintenance image?)")
+    return True
+
+
 def nearest_dbz(pixel_rgb: tuple[int, int, int],
                  lut: list[tuple[tuple[int, int, int], float]]) -> float | None:
     """Single-pixel lookup — kept for occasional ad-hoc use, but
@@ -3562,7 +3597,8 @@ def _load_previous_dbz_for_flow(product: str, state: dict | None = None) -> np.n
         img = Image.open(existing[-1])
         img.load()
         lut = build_lut_from_colorbar(img, product)
-        return decode_reflectivity(img, product, lut)
+        dbz = decode_reflectivity(img, product, lut)
+        return None if frame_looks_implausible(dbz, product) else dbz
     except Exception as e:
         print(f"[flow] {product}: couldn't decode previous archived frame "
               f"{existing[-1]} for optical flow, skipping this cycle: {e}")
@@ -3716,10 +3752,18 @@ def poll_and_decode(product: str, state: dict, prev_cells: dict, prev_obs_time: 
               f"or changed basemap) - skipping this cycle")
         return None
 
-    obs_time = extract_observation_time(img, product)
-    last_obs_time_seen[product] = obs_time
     lut = build_lut_from_colorbar(img, product)
     dbz = decode_reflectivity(img, product, lut)
+    if frame_looks_implausible(dbz, product):
+        # Not archived and not tracked: treat the radar as offline this
+        # cycle, and drop any cells an earlier placeholder frame left in
+        # prev_cells -- a product with no readable time this cycle still
+        # counts as fresh, so those cells would otherwise stay on the map.
+        prev_cells[product] = []
+        return None
+
+    obs_time = extract_observation_time(img, product)
+    last_obs_time_seen[product] = obs_time
 
     pstate = state.setdefault(product, {"last_obs_time": None, "last_new_frame_ts": 0,
                                          "last_frame_hash": None})
@@ -4749,11 +4793,16 @@ def run_pipeline() -> None:
                     print(f"[poll] {product}: fetch failed, and the last archived frame {existing[-1]} "
                           f"has no readable time and was polled {age_min:.0f} min ago -- not using it")
                     existing = []
+            fallback_dbz = None
             if existing:
-                print(f"[poll] {product}: fetch failed, falling back to last archived frame {existing[-1]}")
                 img = Image.open(existing[-1])
                 lut = build_lut_from_colorbar(img, product)
-                _last_dbz[product] = decode_reflectivity(img, product, lut)
+                fallback_dbz = decode_reflectivity(img, product, lut)
+                if frame_looks_implausible(fallback_dbz, product):
+                    fallback_dbz = None
+            if fallback_dbz is not None:
+                print(f"[poll] {product}: fetch failed, falling back to last archived frame {existing[-1]}")
+                _last_dbz[product] = fallback_dbz
                 last_obs_time_seen[product] = _obs_time_from_archive_filename(existing[-1])
             else:
                 print(f"[poll] {product}: fetch failed and no archived frame to fall back to -- "
