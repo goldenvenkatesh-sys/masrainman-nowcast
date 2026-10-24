@@ -74,7 +74,7 @@ def call(method: str, data: dict | None = None, files: dict | None = None, timeo
                 time.sleep(wait + 1)
                 continue
             raise TelegramError(f"{method}: flood limit, Telegram asks to wait {wait}s -- not retrying")
-        if r.status_code >= 500 and attempt < ATTEMPTS:
+        if r.status_code >= 500 and attempt < ATTEMPTS and not method.startswith("send"):   # a re-send could arrive twice
             time.sleep(3 * attempt)
             continue
         if r.status_code == 401:
