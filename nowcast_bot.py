@@ -1549,6 +1549,26 @@ def get_background_image(product: str) -> np.ndarray | None:
     return _background_cache[product]
 
 
+def frame_wrong_size(img: Image.Image, product: str) -> bool:
+    """True when the image isn't the product's known radar-render size.
+
+    25 Oct 2026 (~09:55 IST): IMD took the Chennai DWR offline and served a
+    748x599 photo captioned "RADAR SHUT DOWN DUE TO TECHNICAL ISSUE" at BOTH
+    caz_cni.gif and the PPI URL. Chennai has no background_image, and the
+    photo's sky decoded as a smooth, low-speckle sheet of 55+ dBZ, so
+    frame_looks_implausible's speckle test passed it too -- the card painted
+    one huge "Extreme" purple block over Delta/Puducherry and the caption
+    listed towns as having thunderstorms. Real renders always come at the
+    exact image_size measured for each product, so any other size is a
+    placeholder (shutdown/maintenance photo, "no data" card), never radar."""
+    want = PRODUCTS[product].get("image_size")
+    if want is None or tuple(img.size) == tuple(want):
+        return False
+    print(f"[poll] {product}: image is {img.size[0]}x{img.size[1]}, expected {want[0]}x{want[1]} -- "
+          f"not a radar render (IMD placeholder / shutdown image?) -- skipping")
+    return True
+
+
 def frame_looks_corrupted(img: Image.Image, product: str) -> bool:
     """True when too much of the panel differs from the product's known
     background -- a broken/shifted IMD GIF or a changed basemap. Only for
@@ -3596,6 +3616,8 @@ def _load_previous_dbz_for_flow(product: str, state: dict | None = None) -> np.n
     try:
         img = Image.open(existing[-1])
         img.load()
+        if frame_wrong_size(img, product):
+            return None
         lut = build_lut_from_colorbar(img, product)
         dbz = decode_reflectivity(img, product, lut)
         return None if frame_looks_implausible(dbz, product) else dbz
@@ -3745,6 +3767,12 @@ def poll_and_decode(product: str, state: dict, prev_cells: dict, prev_obs_time: 
         img.load()
     except (UnidentifiedImageError, OSError) as e:
         print(f"[poll] {product}: fetched data isn't a valid image - skipping this cycle: {e}")
+        return None
+
+    if frame_wrong_size(img, product):
+        # Same handling as an implausible frame: radar offline this cycle,
+        # not archived, and drop any cells a placeholder left behind.
+        prev_cells[product] = []
         return None
 
     if frame_looks_corrupted(img, product):
@@ -4796,10 +4824,11 @@ def run_pipeline() -> None:
             fallback_dbz = None
             if existing:
                 img = Image.open(existing[-1])
-                lut = build_lut_from_colorbar(img, product)
-                fallback_dbz = decode_reflectivity(img, product, lut)
-                if frame_looks_implausible(fallback_dbz, product):
-                    fallback_dbz = None
+                if not frame_wrong_size(img, product):
+                    lut = build_lut_from_colorbar(img, product)
+                    fallback_dbz = decode_reflectivity(img, product, lut)
+                    if frame_looks_implausible(fallback_dbz, product):
+                        fallback_dbz = None
             if fallback_dbz is not None:
                 print(f"[poll] {product}: fetch failed, falling back to last archived frame {existing[-1]}")
                 _last_dbz[product] = fallback_dbz

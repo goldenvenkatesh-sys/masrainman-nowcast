@@ -310,55 +310,154 @@ def _ist_short(generated_ist: str) -> str:
         return generated_ist
 
 
-def build_caption(nc: Nowcast, limit: int = 1000) -> str:
-    """Short, paragraph-style caption (readable without scrolling).
+# Sentence wording per tier (index matches TIERS): Tamil phrase, English phrase.
+_TIER_SENT = {
+    50: ("இடியுடன் கூடிய மிக கனமழை", "very heavy rain with thunderstorms"),
+    45: ("மிக கனமழை", "very heavy rain"),
+    40: ("கனமழை", "heavy rain"),
+    30: ("மிதமான மழை", "moderate rain"),
+    20: ("லேசான மழை", "light rain"),
+}
 
-    Places are grouped by rain strength, strongest first, inside one Tamil
-    paragraph and one English paragraph. Telegram photo captions max out at
-    1024 UTF-16 units; we stay under `limit` by dropping the least important
-    places (shown as "+N more"), never the header/footer."""
+
+def _join(items: list[str], ta: bool) -> str:
+    """'A, B மற்றும் C' / 'A, B and C'."""
+    if len(items) <= 1:
+        return "".join(items)
+    return ", ".join(items[:-1]) + (" மற்றும் " if ta else " and ") + items[-1]
+
+
+def _time_phrase(generated_ist: str, ta: bool) -> str:
+    """'காலை 9:55 நிலவரப்படி' / 'As of 9:55 AM'."""
+    try:
+        from datetime import datetime
+        d = datetime.strptime(generated_ist.replace(" IST", ""), "%d %b %Y %H:%M")
+    except Exception:
+        return "தற்போதைய நிலவரப்படி" if ta else "Right now"
+    if not ta:
+        return "As of " + d.strftime("%I:%M %p").lstrip("0")
+    h = d.hour
+    part = "இரவு" if h < 5 else "அதிகாலை" if h < 7 else "காலை" if h < 12 else \
+        "மதியம்" if h < 16 else "மாலை" if h < 19 else "இரவு"
+    return f"{part} {d.strftime('%I:%M').lstrip('0')} நிலவரப்படி"
+
+
+def _places_phrase(places, ta: bool, extra: int) -> str:
+    """Where it is raining, ready to drop into a sentence.
+
+    Tamil ends with its own case ending: 'A, B மற்றும் C, D அருகிலுள்ள
+    பகுதிகளில்' or, with places left out, '... உட்பட 9 இடங்களில்'.
+    English: 'A, B and areas near C and D' (+ 'and N more places')."""
+    exact = [p.ta if ta else p.en for p in places if not p.near]
+    near = [p.ta if ta else p.en for p in places if p.near]
+    if ta:
+        bits = list(exact)
+        if near:
+            bits.append(f"{', '.join(near)} அருகிலுள்ள பகுதிகள்")
+        where = _join(bits, True)
+        if extra > 0:
+            return f"{where} உட்பட {len(places) + extra} இடங்களில்"
+        if near:
+            return where[: -len("பகுதிகள்")] + "பகுதிகளில்"
+        return f"{where} பகுதிகளில்"
+    bits = list(exact)
+    if near:
+        bits.append(f"areas near {_join(near, False)}")
+    if extra > 0:
+        bits.append(f"{extra} more place{'s' if extra > 1 else ''}")
+    return _join(bits, False)
+
+
+def _down_sentence(nc: Nowcast, ta: bool) -> str:
+    if not nc.down_radars:
+        return ""
+    keys = [k for k in RADAR_NAMES if k in nc.down_radars] + \
+           [k for k in nc.down_radars if k not in RADAR_NAMES]
+    names = _join([RADAR_NAMES.get(k, (k.title(), k.title()))[1 if ta else 0] for k in keys], ta)
+    if ta:
+        return f"{names} ரேடார் புதுப்பிக்கப்படாததால் சில இடங்களின் மழை விடுபடலாம்."
+    s = "s are" if len(keys) > 1 else " is"
+    return f"The {names} radar{s} not updating from IMD, so some rain may be missed."
+
+
+def build_caption(nc: Nowcast, limit: int = 1000) -> str:
+    """Paragraph-style caption: a one-line title, then one flowing Tamil
+    paragraph and one English paragraph (rain now, next 60 min, motion,
+    radar status, disclaimer), then hashtags.
+
+    Telegram photo captions max out at 1024 UTF-16 units; we stay under
+    `limit` by dropping the least important places (folded in as
+    "N more places"), never the title or the closing sentences."""
     region = f" – {nc.region_ta} | {nc.region_en}" if nc.region_en else ""
-    head = f"🌧️ {config.BRAND_NAME} ரேடார் மழை அறிவிப்பு{region}\n🕒 {_ist_short(nc.generated_ist)} IST"
-    foot = []
+    head = f"🌧️ {config.BRAND_NAME} ரேடார் மழை அறிவிப்பு{region} • {_ist_short(nc.generated_ist)}"
+    tags = f"{config.HASHTAGS} {nc.hashtags}".strip()
+
+    motion = {True: "", False: ""}
     if nc.motion_ok and nc.speed_kmh and nc.bearing_deg is not None and nc.speed_kmh >= 5:
         k = int(((nc.bearing_deg % 360) + 22.5) // 45) % 8
-        foot.append(f"🧭 மழை மேகங்கள் {DIRS_TA[k]} நோக்கி ~{nc.speed_kmh:.0f} கி.மீ/மணி | "
-                    f"Moving {DIRS_EN[k]} ~{nc.speed_kmh:.0f} km/h")
-    down = radar_down_line(nc)
-    if down:
-        foot.append(down)
-    foot.append("ℹ️ IMD ரேடார் சோதனை முன்னறிவிப்பு – அதிகாரப்பூர்வ IMD அறிவிப்புகளைப் பின்பற்றவும் | Follow official IMD warnings.")
-    tags = f"{config.HASHTAGS} {nc.hashtags}".strip()
-    if tags:
-        foot.append(tags)
-    foot_s = "\n".join(foot)
+        motion[True] = f"மழை மேகங்கள் {DIRS_TA[k]} நோக்கி மணிக்கு ~{nc.speed_kmh:.0f} கி.மீ வேகத்தில் நகர்கின்றன."
+        dir_en = {"N": "north", "NE": "northeast", "E": "east", "SE": "southeast", "S": "south",
+                  "SW": "southwest", "W": "west", "NW": "northwest"}[DIRS_EN[k]]
+        motion[False] = f"Rain clouds are moving {dir_en} at ~{nc.speed_kmh:.0f} km/h."
+    closing = {
+        True: "இது சோதனை முன்னறிவிப்பு; IMD அறிவிப்புகளைப் பின்பற்றவும்.",
+        False: "Experimental nowcast; follow official IMD warnings.",
+    }
+
+    def tail(ta: bool) -> list[str]:
+        return [x for x in (motion[ta], _down_sentence(nc, ta), closing[ta]) if x]
+
+    def assemble(paras: list[str]) -> str:
+        return f"{head}\n\n" + "\n\n".join(paras) + (f"\n\n{tags}" if tags else "")
 
     if not nc.raining and not nc.coming:
-        mid = ("🌤️ தற்போது ரேடாரில் குறிப்பிடத்தக்க மழை இல்லை. | No significant rain on radar right now."
-               if not nc.any_echo else
-               "🌦️ ரேடாரில் லேசான, ஆங்காங்கே மழை மேகங்கள் மட்டும். | Only light/scattered echoes on radar.")
-        return f"{head}\n\n{mid}\n\n{foot_s}"
+        paras = []
+        for ta in (True, False):
+            if ta:
+                lead = (f"{_time_phrase(nc.generated_ist, True)} ரேடாரில் குறிப்பிடத்தக்க மழை எதுவும் இல்லை."
+                        if not nc.any_echo else
+                        f"{_time_phrase(nc.generated_ist, True)} ரேடாரில் லேசான, ஆங்காங்கே மழை மேகங்கள் மட்டுமே உள்ளன.")
+            else:
+                lead = (f"{_time_phrase(nc.generated_ist, False)}, there is no significant rain on radar."
+                        if not nc.any_echo else
+                        f"{_time_phrase(nc.generated_ist, False)}, only light, scattered rain clouds show on radar.")
+            paras.append(" ".join([lead] + tail(ta)))
+        return assemble(paras)
 
-    def now_groups(places, ta: bool) -> str:
+    def now_sentence(places, extra: int, ta: bool) -> str:
         groups: dict = {}
         for p in places:
-            t = tier(p.now_dbz)
-            name = (f"{p.ta} அருகே" if p.near else p.ta) if ta else (f"near {p.en}" if p.near else p.en)
-            groups.setdefault(t, []).append(name)
-        parts = [f"{t[3]} {t[2] if ta else t[1]} – {', '.join(n)}"
-                 for t, n in sorted(groups.items(), key=lambda kv: -kv[0][0])]
-        return "; ".join(parts)
+            groups.setdefault(tier(p.now_dbz)[0], []).append(p)
+        order = sorted(groups, reverse=True)
+        clauses = []
+        for i, lvl in enumerate(order):
+            more_n = extra if i == len(order) - 1 else 0
+            where = _places_phrase(groups[lvl], ta, more_n)
+            phrase = _TIER_SENT[lvl][0 if ta else 1]
+            if ta:
+                clauses.append(f"{where} {phrase} பெய்து வருகிறது" if i == 0 else f"{where} {phrase}")
+            else:
+                clauses.append(f"{phrase} is falling over {where}" if i == 0 else f"{phrase} over {where}")
+        body = "; ".join(clauses)
+        return f"தற்போது {body}." if ta else f"Right now, {body}."
 
-    def soon_list(places, ta: bool) -> str:
-        out = []
+    def soon_sentence(places, extra: int, ta: bool) -> str:
+        items = []
         for p in places:
             t = tier(max(p.soon_dbz, config.ALERT_MIN_DBZ))
             when = f"~{p.eta_clock}" if p.eta_clock else (f"~{p.eta_min} நிமி" if ta else f"~{p.eta_min} min")
-            out.append(f"{p.ta if ta else p.en} ({when}, {t[2] if ta else t[1].lower()})")
-        return ", ".join(out)
-
-    def more(n: int, ta: bool) -> str:
-        return (f" + மேலும் {n} இடங்கள்" if ta else f" + {n} more places") if n > 0 else ""
+            name = p.ta if ta else p.en
+            what = _TIER_SENT[t[0]][0] if ta else _TIER_SENT[t[0]][1].replace(" rain", "").replace(" with", ",")
+            items.append(f"{name} ({when}, {what})")
+        if ta:
+            if extra > 0:
+                where = f"{_join(items, True)} உட்பட {len(items) + extra} இடங்களுக்கு"
+            else:
+                where = f"{_join(items, True)} {'பகுதிக்கு' if len(items) == 1 else 'ஆகிய பகுதிகளுக்கு'}"
+            return f"அடுத்த 60 நிமிடங்களில் {where} மழை வர வாய்ப்பு உள்ளது."
+        if extra > 0:
+            items.append(f"{extra} more place{'s' if extra > 1 else ''}")
+        return f"In the next 60 minutes, rain is likely to reach {_join(items, False)}."
 
     picks = {0: [], 1: []}
     queues = {0: list(nc.raining), 1: list(nc.coming)}
@@ -367,18 +466,23 @@ def build_caption(nc: Nowcast, limit: int = 1000) -> str:
     def render() -> str:
         paras = []
         for ta in (True, False):
-            lines = []
+            sents = []
             if picks[0]:
-                lbl = "🔴 இப்போது மழை: " if ta else "🔴 Raining now: "
-                lines.append(lbl + now_groups(picks[0], ta) + more(totals[0] - len(picks[0]), ta) + ".")
+                sents.append(now_sentence(picks[0], totals[0] - len(picks[0]), ta))
             if picks[1]:
-                lbl = "⏱️ அடுத்த 60 நிமிடங்களில்: " if ta else "⏱️ Next 60 min: "
-                lines.append(lbl + soon_list(picks[1], ta) + more(totals[1] - len(picks[1]), ta) + ".")
-            paras.append("\n".join(lines))
-        return f"{head}\n\n" + "\n\n".join(paras) + f"\n\n{foot_s}"
+                s = soon_sentence(picks[1], totals[1] - len(picks[1]), ta)
+                if not picks[0]:   # nothing raining now: open with the time instead
+                    s = ("தற்போது இப்பகுதியில் மழை இல்லை. " if ta else "It is not raining here yet. ") + s
+                sents.append(s)
+            paras.append(" ".join(sents + tail(ta)))
+        return assemble(paras)
 
-    # Add places one at a time (alternating sections, most important first)
-    # until the caption would exceed the limit.
+    # The top town of each section is always named (a caption with no towns
+    # says nothing); then add places one at a time, alternating sections,
+    # most important first, until the caption would exceed the limit.
+    for i in (0, 1):
+        if queues[i]:
+            picks[i].append(queues[i].pop(0))
     progressed = True
     while progressed:
         progressed = False
