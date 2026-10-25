@@ -31,11 +31,22 @@ TELEGRAM_CHANNEL_ID = _env("TELEGRAM_CHANNEL_ID")
 # "new" = a new post every cycle, "edit" = keep ONE live post and keep
 # replacing its picture/caption (no feed spam).
 TELEGRAM_CHANNEL_MODE = _env("TELEGRAM_CHANNEL_MODE", "new").lower()
+# "new" mode: all regions go out as ONE album, at most once every this many
+# minutes. Posting every card every 10 minutes (~600 posts a day) is what gets
+# a bot reported as spam and deleted by Telegram.
+TELEGRAM_CHANNEL_EVERY_MIN = int(_env("TELEGRAM_CHANNEL_EVERY_MIN", "30"))
+# Most photos in one album (Telegram's own limit is 10).
+TELEGRAM_ALBUM_MAX = min(int(_env("TELEGRAM_ALBUM_MAX", "10")), 10)
+# Send without a notification sound (followers still see every post).
+TELEGRAM_SILENT = _env("TELEGRAM_SILENT", "true").lower() in ("1", "true", "yes")
+# Hard safety cap: messages this bot may send per IST day, whatever happens
+# (a stuck state file, a loop, many regions with rain). Counted in state/.
+TELEGRAM_DAILY_MAX = int(_env("TELEGRAM_DAILY_MAX", "600"))
 # Second channel/group (e.g. the users' discussion channel) that gets a copy of
 # each region's radar card at most once every TELEGRAM_FORWARD_EVERY_MIN
 # minutes. "@channelusername" or "-100...". Leave empty to skip.
 TELEGRAM_FORWARD_CHAT_ID = _env("TELEGRAM_FORWARD_CHAT_ID")
-TELEGRAM_FORWARD_EVERY_MIN = int(_env("TELEGRAM_FORWARD_EVERY_MIN", "30"))
+TELEGRAM_FORWARD_EVERY_MIN = int(_env("TELEGRAM_FORWARD_EVERY_MIN", "60"))
 # Your private chat with the bot -- where the Yes/No approval card arrives.
 TELEGRAM_ADMIN_CHAT_ID = _env("TELEGRAM_ADMIN_CHAT_ID")
 # Comma-separated Telegram user ids allowed to press "Yes". Defaults to the

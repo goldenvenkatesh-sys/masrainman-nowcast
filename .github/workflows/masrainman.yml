@@ -32,7 +32,10 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
       TELEGRAM_FORWARD_CHAT_ID: ${{ secrets.TELEGRAM_FORWARD_CHAT_ID || vars.TELEGRAM_FORWARD_CHAT_ID || '@Masrainmanweather' }}
-      TELEGRAM_FORWARD_EVERY_MIN: ${{ vars.TELEGRAM_FORWARD_EVERY_MIN || '30' }}
+      TELEGRAM_FORWARD_EVERY_MIN: ${{ vars.TELEGRAM_FORWARD_EVERY_MIN || '60' }}
+      TELEGRAM_CHANNEL_EVERY_MIN: ${{ vars.TELEGRAM_CHANNEL_EVERY_MIN || '30' }}
+      TELEGRAM_SILENT: ${{ vars.TELEGRAM_SILENT || 'true' }}
+      TELEGRAM_DAILY_MAX: ${{ vars.TELEGRAM_DAILY_MAX || '600' }}
       TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
       TELEGRAM_ADMIN_IDS: ${{ secrets.TELEGRAM_ADMIN_IDS }}
       FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
@@ -69,6 +72,16 @@ jobs:
             output/caption_*.txt
           retention-days: 2
           if-no-files-found: ignore
+
+      - name: Back up the latest cards to GitHub (download if Telegram is down)
+        if: ${{ !cancelled() && hashFiles('output/masrainman_*.jpg') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view latest-radar >/dev/null 2>&1 || gh release create latest-radar \
+            --title "Latest radar cards" --latest=false \
+            --notes "The newest MasRainman radar card of each region, replaced every cycle." || true
+          gh release upload latest-radar output/masrainman_*.jpg --clobber || echo "backup upload failed (Telegram posting is not affected)"
 
       - name: Commit tracking state back to the repo
         if: ${{ !cancelled() }}
