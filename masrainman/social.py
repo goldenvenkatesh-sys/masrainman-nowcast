@@ -51,29 +51,28 @@ def _keyboard() -> dict:
                                 [{"text": "❌ No", "callback_data": "mr:no"}]]}
 
 
-def _forward(st: dict, cards: list[tuple[bytes, str]]) -> None:
-    """Send all of this cycle's region cards to TELEGRAM_FORWARD_CHAT_ID as ONE album,
-    at most once every TELEGRAM_FORWARD_EVERY_MIN minutes (one notification for followers).
+def _album(st: dict, chat_id, cards: list[tuple[bytes, str]], every_min: int, state_key: str, label: str) -> None:
+    """Send this cycle's region cards to chat_id as ONE album (one notification),
+    at most once every every_min minutes and at most TELEGRAM_ALBUM_MAX photos.
 
     Runs are every ~10 min with some GitHub delay, so allow 5 min of slack.
-    Never raises: a problem here must not disturb the main channel/approvals.
+    Never raises: a problem here must not disturb the other posts/approvals.
     """
-    if not (config.TELEGRAM_FORWARD_CHAT_ID and cards):
+    if not (chat_id and cards):
         return
     try:
         now = datetime.now(timezone.utc)
-        prev = st.get("forward_last_album_utc")
+        prev = st.get(state_key)
         if prev:
             age_min = (now - datetime.fromisoformat(prev)).total_seconds() / 60
-            if age_min < max(config.TELEGRAM_FORWARD_EVERY_MIN - 5, 1):
-                print(f"[social] forward album skipped (last one {age_min:.0f} min ago)")
+            if age_min < max(every_min - 5, 1):
+                print(f"[social] {label} album skipped (last one {age_min:.0f} min ago)")
                 return
-        msgs = tg.send_album(config.TELEGRAM_FORWARD_CHAT_ID, cards)
-        st["forward_last_album_utc"] = now.isoformat(timespec="seconds")
-        st.pop("forward_last_utc", None)
-        print(f"[social] album of {len(msgs)} card(s) sent to forward channel")
+        msgs = tg.send_album(chat_id, cards[:config.TELEGRAM_ALBUM_MAX])
+        st[state_key] = now.isoformat(timespec="seconds")
+        print(f"[social] album of {len(msgs)} card(s) sent to {label}")
     except Exception as e:
-        print(f"[social] forward album to second channel failed: {e}")
+        print(f"[social] {label} album failed: {e}")
 
 
 # ------------------------------------------------------------------ cycle --
@@ -99,10 +98,11 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     forward_cards: list[tuple[bytes, str]] = []
     for key, path, caption in items:
         image = path.read_bytes()
-        # 1) automatic Telegram channel post (one live post per region in "edit" mode)
-        if config.TELEGRAM_CHANNEL_ID:
+        # 1) "edit" mode: keep one live post per region up to date (edits send no
+        #    notification). "new" mode posts one album after the loop instead.
+        if config.TELEGRAM_CHANNEL_ID and config.TELEGRAM_CHANNEL_MODE == "edit":
             try:
-                mid = channel_ids.get(key) if config.TELEGRAM_CHANNEL_MODE == "edit" else None
+                mid = channel_ids.get(key)
                 if mid:
                     try:
                         tg.edit_photo(config.TELEGRAM_CHANNEL_ID, mid, image, caption)
@@ -136,8 +136,13 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
         except Exception as e:
             print(f"[social] {key}: approval card failed: {e}")
 
-    # 3) one album for the second channel (every TELEGRAM_FORWARD_EVERY_MIN)
-    _forward(st, forward_cards)
+    # 3) "new" mode: one album for the channel (every TELEGRAM_CHANNEL_EVERY_MIN),
+    #    and one for the second channel (every TELEGRAM_FORWARD_EVERY_MIN)
+    if config.TELEGRAM_CHANNEL_MODE != "edit":
+        _album(st, config.TELEGRAM_CHANNEL_ID, forward_cards, config.TELEGRAM_CHANNEL_EVERY_MIN,
+               "channel_last_album_utc", "channel")
+    _album(st, config.TELEGRAM_FORWARD_CHAT_ID, forward_cards, config.TELEGRAM_FORWARD_EVERY_MIN,
+           "forward_last_album_utc", "forward channel")
 
     st["last_signature"] = sig
     _save(st)

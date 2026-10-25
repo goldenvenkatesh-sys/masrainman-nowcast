@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -42,6 +43,27 @@ def _url(method: str) -> str:
     return f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/{method}"
 
 
+BUDGET = config.STATE_DIR / "telegram_budget.json"
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def _take_budget(n: int):
+    """Count n outgoing messages against TELEGRAM_DAILY_MAX for today (IST);
+    refuse once the day's cap is reached."""
+    today = datetime.now(IST).date().isoformat()
+    try:
+        b = json.loads(BUDGET.read_text())
+    except Exception:
+        b = {}
+    if b.get("day") != today:
+        b = {"day": today, "sent": 0}
+    if b["sent"] + n > config.TELEGRAM_DAILY_MAX:
+        raise TelegramError(f"daily cap of {config.TELEGRAM_DAILY_MAX} messages reached -- not sending")
+    b["sent"] += n
+    BUDGET.parent.mkdir(parents=True, exist_ok=True)
+    BUDGET.write_text(json.dumps(b))
+
+
 def _space_out():
     global _last_call
     wait = _last_call + MIN_GAP_S - time.monotonic()
@@ -51,7 +73,12 @@ def _space_out():
 
 
 def call(method: str, data: dict | None = None, files: dict | None = None, timeout: int = 60) -> dict | list | bool:
-    payload = {k: (json.dumps(v) if isinstance(v, (dict, list)) else v)
+    if method.startswith("send"):
+        data = dict(data or {})
+        _take_budget(len(data["media"]) if method == "sendMediaGroup" else 1)
+        if config.TELEGRAM_SILENT:
+            data.setdefault("disable_notification", True)
+    payload = {k: (json.dumps(v) if isinstance(v, (dict, list, bool)) else v)
                for k, v in (data or {}).items() if v is not None}
     for attempt in range(1, ATTEMPTS + 1):
         _space_out()
