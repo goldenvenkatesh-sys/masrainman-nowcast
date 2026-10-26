@@ -1,8 +1,8 @@
 {
  "schema": 1,
- "version": "20261026T204838Z",
- "generated_utc": "2026-10-26T20:48:38+00:00",
- "generated_ist": "27 Oct 2026 02:18 IST",
+ "version": "20261026T210155Z",
+ "generated_utc": "2026-10-26T21:01:55+00:00",
+ "generated_ist": "27 Oct 2026 02:31 IST",
  "stale_after_min": 60,
  "radars": [
   {
@@ -24,7 +24,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-26T20:22:35+00:00",
    "obs_time_ist": "27 Oct 01:52 IST",
-   "age_min": 26.0,
+   "age_min": 39.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 10 min between frames"
@@ -34,12 +34,12 @@
    "radar": "karaikal",
    "label": "Karaikal Extended Radar",
    "range_km": 500.0,
-   "obs_time_utc": "2026-10-26T19:50:35+00:00",
-   "obs_time_ist": "27 Oct 01:20 IST",
-   "age_min": 58.0,
+   "obs_time_utc": "2026-10-26T20:21:11+00:00",
+   "obs_time_ist": "27 Oct 01:51 IST",
+   "age_min": 41.0,
    "status": "fresh",
    "used": true,
-   "motion": "no motion: too little echo to measure"
+   "motion": "ok: 31 min between frames"
   },
   {
    "product": "cni_maxz",
@@ -48,7 +48,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-26T20:10:00+00:00",
    "obs_time_ist": "27 Oct 01:40 IST",
-   "age_min": 39.0,
+   "age_min": 52.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: too little echo to measure"
@@ -60,7 +60,7 @@
    "range_km": 150.0,
    "obs_time_utc": "2026-10-26T20:10:00+00:00",
    "obs_time_ist": "27 Oct 01:40 IST",
-   "age_min": 39.0,
+   "age_min": 52.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 30 min between frames"
@@ -72,10 +72,10 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-26T20:00:03+00:00",
    "obs_time_ist": "27 Oct 01:30 IST",
-   "age_min": 49.0,
-   "status": "fresh",
-   "used": true,
-   "motion": "ok: 20 min between frames"
+   "age_min": 62.0,
+   "status": "stale",
+   "used": false,
+   "motion": "no motion: frame too old to use"
   },
   {
    "product": "tvm_ppi",
@@ -84,7 +84,7 @@
    "range_km": 240.0,
    "obs_time_utc": "2026-10-26T20:06:19+00:00",
    "obs_time_ist": "27 Oct 01:36 IST",
-   "age_min": 42.0,
+   "age_min": 56.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 31 min between frames"
@@ -107,69 +107,69 @@
    {
     "name": "plus_0",
     "lead_min": 0,
-    "valid_utc": "2026-10-26T20:48:38+00:00",
-    "valid_ist": "27 Oct 02:18 IST"
+    "valid_utc": "2026-10-26T21:01:55+00:00",
+    "valid_ist": "27 Oct 02:31 IST"
    },
    {
     "name": "plus_10",
     "lead_min": 10,
-    "valid_utc": "2026-10-26T20:58:38+00:00",
-    "valid_ist": "27 Oct 02:28 IST"
+    "valid_utc": "2026-10-26T21:11:55+00:00",
+    "valid_ist": "27 Oct 02:41 IST"
    },
    {
     "name": "plus_20",
     "lead_min": 20,
-    "valid_utc": "2026-10-26T21:08:38+00:00",
-    "valid_ist": "27 Oct 02:38 IST"
+    "valid_utc": "2026-10-26T21:21:55+00:00",
+    "valid_ist": "27 Oct 02:51 IST"
    },
    {
     "name": "plus_30",
     "lead_min": 30,
-    "valid_utc": "2026-10-26T21:18:38+00:00",
-    "valid_ist": "27 Oct 02:48 IST"
+    "valid_utc": "2026-10-26T21:31:55+00:00",
+    "valid_ist": "27 Oct 03:01 IST"
    },
    {
     "name": "plus_40",
     "lead_min": 40,
-    "valid_utc": "2026-10-26T21:28:38+00:00",
-    "valid_ist": "27 Oct 02:58 IST"
+    "valid_utc": "2026-10-26T21:41:55+00:00",
+    "valid_ist": "27 Oct 03:11 IST"
    },
    {
     "name": "plus_50",
     "lead_min": 50,
-    "valid_utc": "2026-10-26T21:38:38+00:00",
-    "valid_ist": "27 Oct 03:08 IST"
+    "valid_utc": "2026-10-26T21:51:55+00:00",
+    "valid_ist": "27 Oct 03:21 IST"
    },
    {
     "name": "plus_60",
     "lead_min": 60,
-    "valid_utc": "2026-10-26T21:48:38+00:00",
-    "valid_ist": "27 Oct 03:18 IST"
+    "valid_utc": "2026-10-26T22:01:55+00:00",
+    "valid_ist": "27 Oct 03:31 IST"
    },
    {
     "name": "plus_70",
     "lead_min": 70,
-    "valid_utc": "2026-10-26T21:58:38+00:00",
-    "valid_ist": "27 Oct 03:28 IST"
+    "valid_utc": "2026-10-26T22:11:55+00:00",
+    "valid_ist": "27 Oct 03:41 IST"
    },
    {
     "name": "plus_80",
     "lead_min": 80,
-    "valid_utc": "2026-10-26T22:08:38+00:00",
-    "valid_ist": "27 Oct 03:38 IST"
+    "valid_utc": "2026-10-26T22:21:55+00:00",
+    "valid_ist": "27 Oct 03:51 IST"
    },
    {
     "name": "plus_90",
     "lead_min": 90,
-    "valid_utc": "2026-10-26T22:18:38+00:00",
-    "valid_ist": "27 Oct 03:48 IST"
+    "valid_utc": "2026-10-26T22:31:55+00:00",
+    "valid_ist": "27 Oct 04:01 IST"
    }
   ]
  },
  "motion": {
   "available": true,
-  "overall_speed_kmh": 4.8,
-  "overall_bearing_deg": 223.0,
+  "overall_speed_kmh": 5.5,
+  "overall_bearing_deg": 222.0,
   "note": "bearing is the direction storms are moving TOWARD, in degrees clockwise from north"
  },
  "cells": [],
@@ -259,6 +259,20 @@
    "bearing_deg": 189.0
   },
   {
+   "lat": 10.804,
+   "lon": 77.515,
+   "area_km2": 68.0,
+   "max_dbz": 30.0,
+   "mean_dbz": 27.0,
+   "south": 10.76,
+   "north": 10.86,
+   "west": 77.5,
+   "east": 77.54,
+   "has_strong_core": false,
+   "speed_kmh": 0.0,
+   "bearing_deg": 262.0
+  },
+  {
    "lat": 9.428,
    "lon": 80.198,
    "area_km2": 49.0,
@@ -299,20 +313,6 @@
    "has_strong_core": false,
    "speed_kmh": 0.2,
    "bearing_deg": 349.0
-  },
-  {
-   "lat": 13.486,
-   "lon": 74.436,
-   "area_km2": 38.0,
-   "max_dbz": 39.0,
-   "mean_dbz": 32.0,
-   "south": 13.46,
-   "north": 13.52,
-   "west": 74.42,
-   "east": 74.46,
-   "has_strong_core": true,
-   "speed_kmh": 0.9,
-   "bearing_deg": 316.0
   },
   {
    "lat": 8.207,
