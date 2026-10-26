@@ -1,8 +1,8 @@
 {
  "schema": 1,
- "version": "20261026T054625Z",
- "generated_utc": "2026-10-26T05:46:25+00:00",
- "generated_ist": "26 Oct 2026 11:16 IST",
+ "version": "20261026T060208Z",
+ "generated_utc": "2026-10-26T06:02:08+00:00",
+ "generated_ist": "26 Oct 2026 11:32 IST",
  "stale_after_min": 60,
  "radars": [
   {
@@ -24,7 +24,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-26T05:22:34+00:00",
    "obs_time_ist": "26 Oct 10:52 IST",
-   "age_min": 24.0,
+   "age_min": 40.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 20 min between frames"
@@ -34,12 +34,12 @@
    "radar": "karaikal",
    "label": "Karaikal Extended Radar",
    "range_km": 500.0,
-   "obs_time_utc": "2026-10-26T04:02:20+00:00",
-   "obs_time_ist": "26 Oct 09:32 IST",
-   "age_min": 104.0,
-   "status": "stale",
-   "used": false,
-   "motion": "no motion: frame too old to use"
+   "obs_time_utc": "2026-10-26T05:20:24+00:00",
+   "obs_time_ist": "26 Oct 10:50 IST",
+   "age_min": 42.0,
+   "status": "fresh",
+   "used": true,
+   "motion": "no motion: no earlier frame 4-45 min before the latest one"
   },
   {
    "product": "cni_maxz",
@@ -48,7 +48,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-23T20:40:00+00:00",
    "obs_time_ist": "24 Oct 02:10 IST",
-   "age_min": 3426.0,
+   "age_min": 3442.0,
    "status": "stale",
    "used": false,
    "motion": "no motion: frame too old to use"
@@ -60,7 +60,7 @@
    "range_km": 150.0,
    "obs_time_utc": "2026-10-23T20:40:00+00:00",
    "obs_time_ist": "24 Oct 02:10 IST",
-   "age_min": 3426.0,
+   "age_min": 3442.0,
    "status": "stale",
    "used": false,
    "motion": "no motion: frame too old to use"
@@ -72,7 +72,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-26T05:10:01+00:00",
    "obs_time_ist": "26 Oct 10:40 IST",
-   "age_min": 36.0,
+   "age_min": 52.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 20 min between frames"
@@ -84,7 +84,7 @@
    "range_km": 240.0,
    "obs_time_utc": "2026-10-26T05:07:58+00:00",
    "obs_time_ist": "26 Oct 10:37 IST",
-   "age_min": 38.0,
+   "age_min": 54.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 15 min between frames"
@@ -107,62 +107,62 @@
    {
     "name": "plus_0",
     "lead_min": 0,
-    "valid_utc": "2026-10-26T05:46:25+00:00",
-    "valid_ist": "26 Oct 11:16 IST"
+    "valid_utc": "2026-10-26T06:02:08+00:00",
+    "valid_ist": "26 Oct 11:32 IST"
    },
    {
     "name": "plus_10",
     "lead_min": 10,
-    "valid_utc": "2026-10-26T05:56:25+00:00",
-    "valid_ist": "26 Oct 11:26 IST"
+    "valid_utc": "2026-10-26T06:12:08+00:00",
+    "valid_ist": "26 Oct 11:42 IST"
    },
    {
     "name": "plus_20",
     "lead_min": 20,
-    "valid_utc": "2026-10-26T06:06:25+00:00",
-    "valid_ist": "26 Oct 11:36 IST"
+    "valid_utc": "2026-10-26T06:22:08+00:00",
+    "valid_ist": "26 Oct 11:52 IST"
    },
    {
     "name": "plus_30",
     "lead_min": 30,
-    "valid_utc": "2026-10-26T06:16:25+00:00",
-    "valid_ist": "26 Oct 11:46 IST"
+    "valid_utc": "2026-10-26T06:32:08+00:00",
+    "valid_ist": "26 Oct 12:02 IST"
    },
    {
     "name": "plus_40",
     "lead_min": 40,
-    "valid_utc": "2026-10-26T06:26:25+00:00",
-    "valid_ist": "26 Oct 11:56 IST"
+    "valid_utc": "2026-10-26T06:42:08+00:00",
+    "valid_ist": "26 Oct 12:12 IST"
    },
    {
     "name": "plus_50",
     "lead_min": 50,
-    "valid_utc": "2026-10-26T06:36:25+00:00",
-    "valid_ist": "26 Oct 12:06 IST"
+    "valid_utc": "2026-10-26T06:52:08+00:00",
+    "valid_ist": "26 Oct 12:22 IST"
    },
    {
     "name": "plus_60",
     "lead_min": 60,
-    "valid_utc": "2026-10-26T06:46:25+00:00",
-    "valid_ist": "26 Oct 12:16 IST"
+    "valid_utc": "2026-10-26T07:02:08+00:00",
+    "valid_ist": "26 Oct 12:32 IST"
    },
    {
     "name": "plus_70",
     "lead_min": 70,
-    "valid_utc": "2026-10-26T06:56:25+00:00",
-    "valid_ist": "26 Oct 12:26 IST"
+    "valid_utc": "2026-10-26T07:12:08+00:00",
+    "valid_ist": "26 Oct 12:42 IST"
    },
    {
     "name": "plus_80",
     "lead_min": 80,
-    "valid_utc": "2026-10-26T07:06:25+00:00",
-    "valid_ist": "26 Oct 12:36 IST"
+    "valid_utc": "2026-10-26T07:22:08+00:00",
+    "valid_ist": "26 Oct 12:52 IST"
    },
    {
     "name": "plus_90",
     "lead_min": 90,
-    "valid_utc": "2026-10-26T07:16:25+00:00",
-    "valid_ist": "26 Oct 12:46 IST"
+    "valid_utc": "2026-10-26T07:32:08+00:00",
+    "valid_ist": "26 Oct 13:02 IST"
    }
   ]
  },
@@ -635,6 +635,20 @@
    "bearing_deg": 232.0
   },
   {
+   "lat": 10.125,
+   "lon": 75.565,
+   "area_km2": 150.0,
+   "max_dbz": 22.0,
+   "mean_dbz": 22.0,
+   "south": 10.06,
+   "north": 10.18,
+   "west": 75.5,
+   "east": 75.62,
+   "has_strong_core": false,
+   "speed_kmh": 13.6,
+   "bearing_deg": 194.0
+  },
+  {
    "lat": 11.826,
    "lon": 80.327,
    "area_km2": 140.0,
@@ -1039,6 +1053,20 @@
    "has_strong_core": false,
    "speed_kmh": 20.4,
    "bearing_deg": 213.0
+  },
+  {
+   "lat": 10.232,
+   "lon": 75.956,
+   "area_km2": 24.0,
+   "max_dbz": 22.0,
+   "mean_dbz": 22.0,
+   "south": 10.22,
+   "north": 10.24,
+   "west": 75.94,
+   "east": 75.98,
+   "has_strong_core": false,
+   "speed_kmh": 13.6,
+   "bearing_deg": 194.0
   },
   {
    "lat": 10.536,
