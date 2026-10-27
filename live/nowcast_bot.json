@@ -1,8 +1,8 @@
 {
  "schema": 1,
- "version": "20261027T214628Z",
- "generated_utc": "2026-10-27T21:46:28+00:00",
- "generated_ist": "28 Oct 2026 03:16 IST",
+ "version": "20261027T220202Z",
+ "generated_utc": "2026-10-27T22:02:02+00:00",
+ "generated_ist": "28 Oct 2026 03:32 IST",
  "stale_after_min": 60,
  "radars": [
   {
@@ -24,7 +24,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-27T21:22:28+00:00",
    "obs_time_ist": "28 Oct 02:52 IST",
-   "age_min": 24.0,
+   "age_min": 40.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: too little echo to measure"
@@ -34,9 +34,9 @@
    "radar": "karaikal",
    "label": "Karaikal Extended Radar",
    "range_km": 500.0,
-   "obs_time_utc": "2026-10-27T20:50:26+00:00",
-   "obs_time_ist": "28 Oct 02:20 IST",
-   "age_min": 56.0,
+   "obs_time_utc": "2026-10-27T21:20:28+00:00",
+   "obs_time_ist": "28 Oct 02:50 IST",
+   "age_min": 42.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: too little echo to measure"
@@ -48,7 +48,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-27T21:10:00+00:00",
    "obs_time_ist": "28 Oct 02:40 IST",
-   "age_min": 36.0,
+   "age_min": 52.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 30 min between frames"
@@ -60,7 +60,7 @@
    "range_km": 150.0,
    "obs_time_utc": "2026-10-27T21:10:00+00:00",
    "obs_time_ist": "28 Oct 02:40 IST",
-   "age_min": 36.0,
+   "age_min": 52.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 30 min between frames"
@@ -72,7 +72,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-27T21:10:00+00:00",
    "obs_time_ist": "28 Oct 02:40 IST",
-   "age_min": 36.0,
+   "age_min": 52.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: too little echo to measure"
@@ -84,10 +84,10 @@
    "range_km": 240.0,
    "obs_time_utc": "2026-10-27T20:53:40+00:00",
    "obs_time_ist": "28 Oct 02:23 IST",
-   "age_min": 53.0,
-   "status": "fresh",
-   "used": true,
-   "motion": "ok: 15 min between frames"
+   "age_min": 68.0,
+   "status": "stale",
+   "used": false,
+   "motion": "no motion: frame too old to use"
   }
  ],
  "grid": {
@@ -107,69 +107,69 @@
    {
     "name": "plus_0",
     "lead_min": 0,
-    "valid_utc": "2026-10-27T21:46:28+00:00",
-    "valid_ist": "28 Oct 03:16 IST"
+    "valid_utc": "2026-10-27T22:02:02+00:00",
+    "valid_ist": "28 Oct 03:32 IST"
    },
    {
     "name": "plus_10",
     "lead_min": 10,
-    "valid_utc": "2026-10-27T21:56:28+00:00",
-    "valid_ist": "28 Oct 03:26 IST"
+    "valid_utc": "2026-10-27T22:12:02+00:00",
+    "valid_ist": "28 Oct 03:42 IST"
    },
    {
     "name": "plus_20",
     "lead_min": 20,
-    "valid_utc": "2026-10-27T22:06:28+00:00",
-    "valid_ist": "28 Oct 03:36 IST"
+    "valid_utc": "2026-10-27T22:22:02+00:00",
+    "valid_ist": "28 Oct 03:52 IST"
    },
    {
     "name": "plus_30",
     "lead_min": 30,
-    "valid_utc": "2026-10-27T22:16:28+00:00",
-    "valid_ist": "28 Oct 03:46 IST"
+    "valid_utc": "2026-10-27T22:32:02+00:00",
+    "valid_ist": "28 Oct 04:02 IST"
    },
    {
     "name": "plus_40",
     "lead_min": 40,
-    "valid_utc": "2026-10-27T22:26:28+00:00",
-    "valid_ist": "28 Oct 03:56 IST"
+    "valid_utc": "2026-10-27T22:42:02+00:00",
+    "valid_ist": "28 Oct 04:12 IST"
    },
    {
     "name": "plus_50",
     "lead_min": 50,
-    "valid_utc": "2026-10-27T22:36:28+00:00",
-    "valid_ist": "28 Oct 04:06 IST"
+    "valid_utc": "2026-10-27T22:52:02+00:00",
+    "valid_ist": "28 Oct 04:22 IST"
    },
    {
     "name": "plus_60",
     "lead_min": 60,
-    "valid_utc": "2026-10-27T22:46:28+00:00",
-    "valid_ist": "28 Oct 04:16 IST"
+    "valid_utc": "2026-10-27T23:02:02+00:00",
+    "valid_ist": "28 Oct 04:32 IST"
    },
    {
     "name": "plus_70",
     "lead_min": 70,
-    "valid_utc": "2026-10-27T22:56:28+00:00",
-    "valid_ist": "28 Oct 04:26 IST"
+    "valid_utc": "2026-10-27T23:12:02+00:00",
+    "valid_ist": "28 Oct 04:42 IST"
    },
    {
     "name": "plus_80",
     "lead_min": 80,
-    "valid_utc": "2026-10-27T23:06:28+00:00",
-    "valid_ist": "28 Oct 04:36 IST"
+    "valid_utc": "2026-10-27T23:22:02+00:00",
+    "valid_ist": "28 Oct 04:52 IST"
    },
    {
     "name": "plus_90",
     "lead_min": 90,
-    "valid_utc": "2026-10-27T23:16:28+00:00",
-    "valid_ist": "28 Oct 04:46 IST"
+    "valid_utc": "2026-10-27T23:32:02+00:00",
+    "valid_ist": "28 Oct 05:02 IST"
    }
   ]
  },
  "motion": {
   "available": true,
-  "overall_speed_kmh": 0.3,
-  "overall_bearing_deg": 128.0,
+  "overall_speed_kmh": 0.1,
+  "overall_bearing_deg": 22.0,
   "note": "bearing is the direction storms are moving TOWARD, in degrees clockwise from north"
  },
  "cells": [
@@ -203,34 +203,6 @@
    "has_strong_core": true,
    "speed_kmh": 0.2,
    "bearing_deg": 121.0
-  },
-  {
-   "lat": 8.591,
-   "lon": 76.87,
-   "area_km2": 88.0,
-   "max_dbz": 34.0,
-   "mean_dbz": 29.0,
-   "south": 8.54,
-   "north": 8.64,
-   "west": 76.84,
-   "east": 76.9,
-   "has_strong_core": false,
-   "speed_kmh": 0.7,
-   "bearing_deg": 149.0
-  },
-  {
-   "lat": 8.699,
-   "lon": 76.757,
-   "area_km2": 34.0,
-   "max_dbz": 28.0,
-   "mean_dbz": 23.0,
-   "south": 8.66,
-   "north": 8.72,
-   "west": 76.74,
-   "east": 76.78,
-   "has_strong_core": false,
-   "speed_kmh": 0.9,
-   "bearing_deg": 148.0
   }
  ],
  "how_to_read": "Grid file: gunzip, then one unsigned byte per node, layers stacked in the order listed. byte position = layer_index * nrows * ncols + row * ncols + col, with row = round((lat_north - lat) / step_deg) and col = round((lon - lon_west) / step_deg). 0 = radar coverage but no echo, 255 = no usable radar coverage (do not read as dry), 1-254 = reflectivity in dBZ. IMD's images start at 20 dBZ, so rain lighter than that is not seen. Rough guide: 20-29 light, 30-39 moderate, 40-49 heavy, 50+ very heavy. plus_NN layers are the observed picture moved along the measured motion with no growth or decay, so check a neighbourhood that widens with lead time (about 5 km at 30 min, 10 km at 60, 15 km at 90). Do not answer from this file if generated_utc is more than 30 minutes old. Fetch the grid file with ?v=<version> to avoid a cached copy."
