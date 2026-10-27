@@ -1,8 +1,8 @@
 {
  "schema": 1,
- "version": "20261027T184628Z",
- "generated_utc": "2026-10-27T18:46:28+00:00",
- "generated_ist": "28 Oct 2026 00:16 IST",
+ "version": "20261027T190246Z",
+ "generated_utc": "2026-10-27T19:02:46+00:00",
+ "generated_ist": "28 Oct 2026 00:32 IST",
  "stale_after_min": 60,
  "radars": [
   {
@@ -22,21 +22,21 @@
    "radar": "karaikal",
    "label": "Karaikal MAXZ - aloft / building",
    "range_km": 250.0,
-   "obs_time_utc": "2026-10-27T18:32:26+00:00",
-   "obs_time_ist": "28 Oct 00:02 IST",
-   "age_min": 14.0,
+   "obs_time_utc": "2026-10-27T18:52:20+00:00",
+   "obs_time_ist": "28 Oct 00:22 IST",
+   "age_min": 10.0,
    "status": "fresh",
    "used": true,
-   "motion": "ok: 20 min between frames"
+   "motion": "no motion: too little echo to measure"
   },
   {
    "product": "kkl_ppz",
    "radar": "karaikal",
    "label": "Karaikal Extended Radar",
    "range_km": 500.0,
-   "obs_time_utc": "2026-10-27T18:10:22+00:00",
-   "obs_time_ist": "27 Oct 23:40 IST",
-   "age_min": 36.0,
+   "obs_time_utc": "2026-10-27T18:40:20+00:00",
+   "obs_time_ist": "28 Oct 00:10 IST",
+   "age_min": 22.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: too little echo to measure"
@@ -46,9 +46,9 @@
    "radar": "chennai",
    "label": "Chennai DWR MAXZ - aloft / building",
    "range_km": 250.0,
-   "obs_time_utc": "2026-10-27T18:30:00+00:00",
-   "obs_time_ist": "28 Oct 00:00 IST",
-   "age_min": 16.0,
+   "obs_time_utc": "2026-10-27T18:40:00+00:00",
+   "obs_time_ist": "28 Oct 00:10 IST",
+   "age_min": 23.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: too little echo to measure"
@@ -58,12 +58,12 @@
    "radar": "chennai",
    "label": "Chennai DWR PPI (0.2 deg)",
    "range_km": 150.0,
-   "obs_time_utc": "2026-10-27T18:30:00+00:00",
-   "obs_time_ist": "28 Oct 00:00 IST",
-   "age_min": 16.0,
+   "obs_time_utc": "2026-10-27T18:40:00+00:00",
+   "obs_time_ist": "28 Oct 00:10 IST",
+   "age_min": 23.0,
    "status": "fresh",
    "used": true,
-   "motion": "ok: 20 min between frames"
+   "motion": "ok: 10 min between frames"
   },
   {
    "product": "mlr_maxz",
@@ -72,7 +72,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-10-27T18:10:00+00:00",
    "obs_time_ist": "27 Oct 23:40 IST",
-   "age_min": 36.0,
+   "age_min": 53.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: too little echo to measure"
@@ -82,9 +82,9 @@
    "radar": "trivandrum",
    "label": "Trivandrum DWR PPI (2 deg)",
    "range_km": 240.0,
-   "obs_time_utc": "2026-10-27T17:46:55+00:00",
-   "obs_time_ist": "27 Oct 23:16 IST",
-   "age_min": 60.0,
+   "obs_time_utc": "2026-10-27T18:17:32+00:00",
+   "obs_time_ist": "27 Oct 23:47 IST",
+   "age_min": 45.0,
    "status": "fresh",
    "used": true,
    "motion": "ok: 31 min between frames"
@@ -107,200 +107,172 @@
    {
     "name": "plus_0",
     "lead_min": 0,
-    "valid_utc": "2026-10-27T18:46:28+00:00",
-    "valid_ist": "28 Oct 00:16 IST"
+    "valid_utc": "2026-10-27T19:02:46+00:00",
+    "valid_ist": "28 Oct 00:32 IST"
    },
    {
     "name": "plus_10",
     "lead_min": 10,
-    "valid_utc": "2026-10-27T18:56:28+00:00",
-    "valid_ist": "28 Oct 00:26 IST"
+    "valid_utc": "2026-10-27T19:12:46+00:00",
+    "valid_ist": "28 Oct 00:42 IST"
    },
    {
     "name": "plus_20",
     "lead_min": 20,
-    "valid_utc": "2026-10-27T19:06:28+00:00",
-    "valid_ist": "28 Oct 00:36 IST"
+    "valid_utc": "2026-10-27T19:22:46+00:00",
+    "valid_ist": "28 Oct 00:52 IST"
    },
    {
     "name": "plus_30",
     "lead_min": 30,
-    "valid_utc": "2026-10-27T19:16:28+00:00",
-    "valid_ist": "28 Oct 00:46 IST"
+    "valid_utc": "2026-10-27T19:32:46+00:00",
+    "valid_ist": "28 Oct 01:02 IST"
    },
    {
     "name": "plus_40",
     "lead_min": 40,
-    "valid_utc": "2026-10-27T19:26:28+00:00",
-    "valid_ist": "28 Oct 00:56 IST"
+    "valid_utc": "2026-10-27T19:42:46+00:00",
+    "valid_ist": "28 Oct 01:12 IST"
    },
    {
     "name": "plus_50",
     "lead_min": 50,
-    "valid_utc": "2026-10-27T19:36:28+00:00",
-    "valid_ist": "28 Oct 01:06 IST"
+    "valid_utc": "2026-10-27T19:52:46+00:00",
+    "valid_ist": "28 Oct 01:22 IST"
    },
    {
     "name": "plus_60",
     "lead_min": 60,
-    "valid_utc": "2026-10-27T19:46:28+00:00",
-    "valid_ist": "28 Oct 01:16 IST"
+    "valid_utc": "2026-10-27T20:02:46+00:00",
+    "valid_ist": "28 Oct 01:32 IST"
    },
    {
     "name": "plus_70",
     "lead_min": 70,
-    "valid_utc": "2026-10-27T19:56:28+00:00",
-    "valid_ist": "28 Oct 01:26 IST"
+    "valid_utc": "2026-10-27T20:12:46+00:00",
+    "valid_ist": "28 Oct 01:42 IST"
    },
    {
     "name": "plus_80",
     "lead_min": 80,
-    "valid_utc": "2026-10-27T20:06:28+00:00",
-    "valid_ist": "28 Oct 01:36 IST"
+    "valid_utc": "2026-10-27T20:22:46+00:00",
+    "valid_ist": "28 Oct 01:52 IST"
    },
    {
     "name": "plus_90",
     "lead_min": 90,
-    "valid_utc": "2026-10-27T20:16:28+00:00",
-    "valid_ist": "28 Oct 01:46 IST"
+    "valid_utc": "2026-10-27T20:32:46+00:00",
+    "valid_ist": "28 Oct 02:02 IST"
    }
   ]
  },
  "motion": {
   "available": true,
-  "overall_speed_kmh": 0.2,
-  "overall_bearing_deg": 217.0,
+  "overall_speed_kmh": 0.0,
+  "overall_bearing_deg": 229.0,
   "note": "bearing is the direction storms are moving TOWARD, in degrees clockwise from north"
  },
  "cells": [
   {
-   "id": 4,
+   "id": 16,
    "radar": "chennai",
    "product": "cni_ppi",
-   "lat": 12.8091,
-   "lon": 80.8412,
-   "max_dbz": 62.0,
-   "area_km2": 0.7,
-   "trend": "steady",
+   "lat": 12.8545,
+   "lon": 79.6802,
+   "max_dbz": 46.2,
+   "area_km2": 1.0,
+   "trend": "unknown",
    "elevated": false,
    "confirmed_at_surface": false,
-   "speed_kmh": 3.8,
-   "bearing_deg": 131.0,
+   "speed_kmh": 0.7,
+   "bearing_deg": 344.0,
    "motion_reliable": false
   }
  ],
  "rain_areas": [
   {
-   "lat": 8.591,
+   "lat": 8.592,
    "lon": 76.874,
-   "area_km2": 102.0,
+   "area_km2": 107.0,
    "max_dbz": 34.0,
-   "mean_dbz": 28.0,
+   "mean_dbz": 27.0,
    "south": 8.52,
    "north": 8.64,
    "west": 76.84,
-   "east": 76.9,
+   "east": 76.92,
    "has_strong_core": false,
-   "speed_kmh": 0.5,
-   "bearing_deg": 152.0
+   "speed_kmh": 0.1,
+   "bearing_deg": 258.0
   },
   {
-   "lat": 8.756,
-   "lon": 77.864,
-   "area_km2": 49.0,
+   "lat": 13.01,
+   "lon": 79.09,
+   "area_km2": 38.0,
    "max_dbz": 34.0,
-   "mean_dbz": 34.0,
-   "south": 8.74,
-   "north": 8.78,
-   "west": 77.82,
-   "east": 77.92,
-   "has_strong_core": false,
-   "speed_kmh": 2.1,
-   "bearing_deg": 198.0
-  },
-  {
-   "lat": 9.414,
-   "lon": 76.367,
-   "area_km2": 49.0,
-   "max_dbz": 34.0,
-   "mean_dbz": 26.0,
-   "south": 9.38,
-   "north": 9.44,
-   "west": 76.34,
-   "east": 76.42,
-   "has_strong_core": false,
-   "speed_kmh": 0.4,
-   "bearing_deg": 329.0
-  },
-  {
-   "lat": 9.038,
-   "lon": 76.535,
-   "area_km2": 34.0,
-   "max_dbz": 32.0,
-   "mean_dbz": 30.0,
-   "south": 9.02,
-   "north": 9.06,
-   "west": 76.52,
-   "east": 76.56,
-   "has_strong_core": false,
-   "speed_kmh": 1.2,
-   "bearing_deg": 165.0
-  },
-  {
-   "lat": 9.288,
-   "lon": 77.476,
-   "area_km2": 34.0,
-   "max_dbz": 20.0,
-   "mean_dbz": 17.0,
-   "south": 9.26,
-   "north": 9.32,
-   "west": 77.44,
-   "east": 77.5,
-   "has_strong_core": false,
-   "speed_kmh": 1.3,
-   "bearing_deg": 244.0
-  },
-  {
-   "lat": 7.936,
-   "lon": 76.163,
-   "area_km2": 29.0,
-   "max_dbz": 32.0,
-   "mean_dbz": 30.0,
-   "south": 7.92,
-   "north": 7.96,
-   "west": 76.14,
-   "east": 76.18,
-   "has_strong_core": false,
-   "speed_kmh": 0.5,
-   "bearing_deg": 168.0
-  },
-  {
-   "lat": 8.711,
-   "lon": 77.707,
-   "area_km2": 29.0,
-   "max_dbz": 34.0,
-   "mean_dbz": 31.0,
-   "south": 8.7,
-   "north": 8.72,
-   "west": 77.68,
-   "east": 77.74,
-   "has_strong_core": false,
-   "speed_kmh": 2.6,
-   "bearing_deg": 214.0
-  },
-  {
-   "lat": 13.004,
-   "lon": 79.087,
-   "area_km2": 24.0,
-   "max_dbz": 34.0,
-   "mean_dbz": 34.0,
+   "mean_dbz": 33.0,
    "south": 13.0,
    "north": 13.02,
    "west": 79.06,
    "east": 79.12,
    "has_strong_core": false,
+   "speed_kmh": 0.2,
+   "bearing_deg": 200.0
+  },
+  {
+   "lat": 8.7,
+   "lon": 76.756,
+   "area_km2": 34.0,
+   "max_dbz": 32.0,
+   "mean_dbz": 26.0,
+   "south": 8.66,
+   "north": 8.72,
+   "west": 76.74,
+   "east": 76.78,
+   "has_strong_core": false,
+   "speed_kmh": 0.2,
+   "bearing_deg": 235.0
+  },
+  {
+   "lat": 11.977,
+   "lon": 80.32,
+   "area_km2": 29.0,
+   "max_dbz": 34.0,
+   "mean_dbz": 31.0,
+   "south": 11.96,
+   "north": 11.98,
+   "west": 80.28,
+   "east": 80.36,
+   "has_strong_core": false,
    "speed_kmh": 0.1,
-   "bearing_deg": 347.0
+   "bearing_deg": 342.0
+  },
+  {
+   "lat": 12.0,
+   "lon": 80.19,
+   "area_km2": 29.0,
+   "max_dbz": 30.0,
+   "mean_dbz": 30.0,
+   "south": 12.0,
+   "north": 12.0,
+   "west": 80.14,
+   "east": 80.24,
+   "has_strong_core": false,
+   "speed_kmh": 0.1,
+   "bearing_deg": 22.0
+  },
+  {
+   "lat": 12.0,
+   "lon": 80.57,
+   "area_km2": 29.0,
+   "max_dbz": 30.0,
+   "mean_dbz": 30.0,
+   "south": 12.0,
+   "north": 12.0,
+   "west": 80.52,
+   "east": 80.62,
+   "has_strong_core": false,
+   "speed_kmh": 0.1,
+   "bearing_deg": 265.0
   }
  ],
  "how_to_read": "Grid file: gunzip, then one unsigned byte per node, layers stacked in the order listed. byte position = layer_index * nrows * ncols + row * ncols + col, with row = round((lat_north - lat) / step_deg) and col = round((lon - lon_west) / step_deg). 0 = radar coverage but no echo, 255 = no usable radar coverage (do not read as dry), 1-254 = reflectivity in dBZ. IMD's images start at 20 dBZ, so rain lighter than that is not seen. Rough guide: 20-29 light, 30-39 moderate, 40-49 heavy, 50+ very heavy. plus_NN layers are the observed picture moved along the measured motion with no growth or decay, so check a neighbourhood that widens with lead time (about 5 km at 30 min, 10 km at 60, 15 km at 90). Do not answer from this file if generated_utc is more than 30 minutes old. Fetch the grid file with ?v=<version> to avoid a cached copy."
