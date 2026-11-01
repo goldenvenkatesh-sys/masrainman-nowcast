@@ -323,6 +323,88 @@ def draw_blocks(img, a, xs, ys, engine):
     img.alpha_composite(layer)
 
 
+CARD_STYLE = (os.environ.get("CARD_RAIN_STYLE") or "smooth").strip().lower()   # smooth | blocks
+
+
+def _panel_grid_coords(g, frame, ss):
+    """Fractional grid (row, col) for every pixel of a panel supersampled ss x."""
+    xs = (np.arange(frame.w * ss) + 0.5) / ss
+    ys = (np.arange(frame.h * ss) + 0.5) / ss
+    lons = np.array([frame.lonlat(x, 0)[0] for x in xs])
+    lats = np.array([frame.lonlat(0, y)[1] for y in ys])
+    cols = (lons - g["lon_west"]) / g["step_deg"]
+    rows = (g["lat_north"] - lats) / g["step_deg"]
+    return rows, cols
+
+
+def draw_smooth_rain(img, field, g, frame, engine, ss=2):
+    """Rain as smooth shaded areas instead of 4 km squares.
+
+    The cleaned 2 km grid is interpolated with a cubic spline that passes
+    exactly through every radar node, so each node keeps its own value and
+    the band edges sit where the radar put them -- only the staircase
+    between nodes is replaced by smooth curves. The spline is clipped to
+    [0, strongest nearby node] so it can never invent rain or a stronger
+    band than the radar saw. Drawn at 2x and downsampled for clean edges."""
+    from scipy import ndimage
+    f = field.astype(float)
+    rows, cols = _panel_grid_coords(g, frame, ss)
+    R, C = np.meshgrid(rows, cols, indexing="ij")
+    v = ndimage.map_coordinates(f, [R, C], order=3, mode="constant", cval=0.0, prefilter=True)
+    cap = ndimage.map_coordinates(ndimage.maximum_filter(f, size=3), [R, C], order=0, mode="constant", cval=0.0)
+    v = np.clip(v, 0, cap)
+    pal = np.array([hex_rgb(h) for h in card_palette(engine)], dtype=np.uint8)
+    band = np.clip(((v - 20) // 5).astype(int), 0, len(pal) - 1)
+    rgba = np.zeros(v.shape + (4,), dtype=np.uint8)
+    rgba[..., :3] = pal[band]
+    rgba[..., 3] = np.where(v >= 20, 235, 0).astype(np.uint8)
+    layer = Image.fromarray(rgba, "RGBA").resize((frame.w, frame.h), Image.LANCZOS)
+    if T["glow"]:
+        from PIL import ImageFilter
+        glow = layer.filter(ImageFilter.GaussianBlur(T["glow"]))
+        ga = np.asarray(glow).copy()
+        ga[..., 3] = (ga[..., 3].astype(float) * 0.85).astype(np.uint8)
+        img.alpha_composite(Image.fromarray(ga, "RGBA"))
+    img.alpha_composite(layer)
+
+
+def draw_smooth_dashed(d, mask, g, frame, color=None, width=3, dash=14, gap=9, sigma=1.3):
+    """Dashed outline of the projected rain area as smooth curves."""
+    from scipy import ndimage
+    import contourpy
+    color = color or T["dash"]
+    if not mask.any():
+        return
+    sm = ndimage.gaussian_filter(mask.astype(float), sigma)
+    gen = contourpy.contour_generator(z=sm)
+    for line in gen.lines(0.5):
+        if len(line) < 4:
+            continue
+        pts = [frame.px(g["lon_west"] + c * g["step_deg"], g["lat_north"] - r * g["step_deg"]) for c, r in line]
+        # walk the polyline laying dashes of fixed pixel length
+        on, left = True, dash
+        cur = [pts[0]]
+        for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+            seg = math.hypot(bx - ax, by - ay)
+            pos = 0.0
+            while seg - pos > 1e-6:
+                step = min(left, seg - pos)
+                pos += step
+                t = pos / seg
+                pt = (ax + (bx - ax) * t, ay + (by - ay) * t)
+                if on:
+                    cur.append(pt)
+                left -= step
+                if left <= 1e-6:
+                    if on and len(cur) > 1:
+                        d.line(cur, fill=color, width=width, joint="curve")
+                    on = not on
+                    left = dash if on else gap
+                    cur = [pt]
+        if on and len(cur) > 1:
+            d.line(cur, fill=color, width=width, joint="curve")
+
+
 def draw_dashed_outline(d, mask, xs, ys, w, h, color=T["dash"], width=3):
     """Stair-step outline of a block mask, dashed (each block edge is one
     dash, which gives the classic dashed-polygon look)."""
@@ -439,13 +521,24 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     frame = Frame(center, view_lat_deg, mw, mh)
     panel = basemap(frame, engine).convert("RGBA")
 
-    a_now = smooth_rain(despeckle(coarsen(obs, COARSEN)))
-    xs, ys = block_geometry(g, COARSEN, frame, a_now.shape)
-    draw_blocks(panel, a_now, xs, ys, engine)
+    if CARD_STYLE == "blocks":
+        a_now = smooth_rain(despeckle(coarsen(obs, COARSEN)))
+        xs, ys = block_geometry(g, COARSEN, frame, a_now.shape)
+        draw_blocks(panel, a_now, xs, ys, engine)
+    else:
+        # full 2 km grid (no 4 km blocks): clean specks/pinholes, then smooth shading
+        full = obs.astype(float)
+        full[full == 255] = 0
+        draw_smooth_rain(panel, smooth_rain(despeckle(full)), g, frame, engine)
     d = ImageDraw.Draw(panel)
     draw_boundaries(d, frame)
     if proj is not None:
-        draw_dashed_outline(d, projected_areas(coarsen(proj, COARSEN)), xs, ys, mw, mh)
+        if CARD_STYLE == "blocks":
+            draw_dashed_outline(d, projected_areas(coarsen(proj, COARSEN)), xs, ys, mw, mh)
+        else:
+            pf = proj.astype(float)
+            pf[pf == 255] = 0
+            draw_smooth_dashed(d, projected_areas(despeckle(pf), min_blocks=24), g, frame)
 
     # radar range rings + site symbols
     s_, w_, n_, e_ = frame.bounds()
