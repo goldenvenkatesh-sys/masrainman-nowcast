@@ -26,6 +26,7 @@ jobs:
       REGIONS: ${{ vars.REGIONS || 'tn,kl,ka' }}
       VIEW_LAT_DEG: ${{ vars.VIEW_LAT_DEG || '1.6' }}
       CARD_BLOCK: ${{ vars.CARD_BLOCK || '2' }}
+      CARD_THEME: ${{ vars.CARD_THEME || 'night' }}
       BASEMAP_URL: ${{ vars.BASEMAP_URL }}
       APPROVALS_VIA_LISTENER: ${{ vars.APPROVALS_VIA_LISTENER || 'false' }}
       CARTO_API_KEY: ${{ secrets.CARTO_API_KEY }}
@@ -80,7 +81,7 @@ jobs:
           rm -f live/nowcast_bot_grid.bin.gz
           [ -f output/nowcast_bot.json ] && cp output/nowcast_bot.json live/
           [ -f output/nowcast_bot_grid.bin.gz ] && cp output/nowcast_bot_grid.bin.gz live/
-          for p in live state archive mosaic_frames radar_loop mosaic_basemap.png tiles_cache assets/masrainman_logo.png; do
+          for p in live state archive debug mosaic_frames radar_loop mosaic_basemap.png tiles_cache assets/masrainman_logo.png; do
             if [ -e "$p" ]; then git add -A "$p"; fi
           done
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi

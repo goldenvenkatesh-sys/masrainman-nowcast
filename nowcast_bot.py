@@ -1549,24 +1549,86 @@ def get_background_image(product: str) -> np.ndarray | None:
     return _background_cache[product]
 
 
-def frame_wrong_size(img: Image.Image, product: str) -> bool:
-    """True when the image isn't the product's known radar-render size.
+# 25 Oct 2026 onwards IMD's Pallikaranai MAXZ (caz_plk.gif) comes a few
+# pixels narrower/wider from frame to frame (3038, 3047 ... vs 3045). Height
+# stays exactly 2490 and the map panel stays where it was; only the right-
+# hand legend/text column drifts. The strict size check below treated every
+# one of those as a shutdown photo, so NIOT silently dropped out of the map
+# for a week. Placeholders are a completely different size (748x599 etc.),
+# so a small width drift with the exact height is accepted and re-aligned.
+SIZE_DRIFT_PX = 16
+LEGEND_SPLIT_X = 2435          # left of this: map panels; right: colorbar + text
+SIZE_DRIFT_DEBUG_DIR = Path("debug") / "size_drift"
+
+
+def _colorbar_score(rgb: np.ndarray, bbox) -> float:
+    l, t, r, b = bbox
+    bar = rgb[t:b, l:r].astype(float)
+    if bar.size == 0:
+        return 0.0
+    sat = bar.max(axis=2) - bar.min(axis=2)
+    return float((sat > 60).mean())
+
+
+def normalize_frame_size(img: Image.Image, product: str) -> Image.Image | None:
+    """Returns the frame at the product's measured image_size, or None when
+    it is not a radar render at all.
 
     25 Oct 2026 (~09:55 IST): IMD took the Chennai DWR offline and served a
     748x599 photo captioned "RADAR SHUT DOWN DUE TO TECHNICAL ISSUE" at BOTH
     caz_cni.gif and the PPI URL. Chennai has no background_image, and the
     photo's sky decoded as a smooth, low-speckle sheet of 55+ dBZ, so
-    frame_looks_implausible's speckle test passed it too -- the card painted
-    one huge "Extreme" purple block over Delta/Puducherry and the caption
-    listed towns as having thunderstorms. Real renders always come at the
-    exact image_size measured for each product, so any other size is a
-    placeholder (shutdown/maintenance photo, "no data" card), never radar."""
-    want = PRODUCTS[product].get("image_size")
+    frame_looks_implausible's speckle test passed it too. Any frame whose
+    height differs, or whose width is off by more than SIZE_DRIFT_PX, is
+    still rejected as a placeholder. A small width drift keeps the map panel
+    left-anchored and slides the legend column until the colorbar lines up
+    with colorbar_bbox again (timestamp OCR + LUT depend on it)."""
+    cfg = PRODUCTS[product]
+    want = cfg.get("image_size")
     if want is None or tuple(img.size) == tuple(want):
-        return False
-    print(f"[poll] {product}: image is {img.size[0]}x{img.size[1]}, expected {want[0]}x{want[1]} -- "
-          f"not a radar render (IMD placeholder / shutdown image?) -- skipping")
-    return True
+        return img
+    w, h = img.size
+    if h != want[1] or abs(w - want[0]) > SIZE_DRIFT_PX:
+        print(f"[poll] {product}: image is {w}x{h}, expected {want[0]}x{want[1]} -- "
+              f"not a radar render (IMD placeholder / shutdown image?) -- skipping")
+        return None
+    src = np.array(img.convert("RGB"))
+    out = np.full((want[1], want[0], 3), 255, dtype=np.uint8)
+    split = min(LEGEND_SPLIT_X, w, want[0])
+    out[:, :split] = src[:, :split]
+    best_dx, best = 0, -1.0
+    for dx in range(-SIZE_DRIFT_PX - 4, SIZE_DRIFT_PX + 5):
+        cand = out.copy()
+        s0 = split + dx
+        if s0 < 0:
+            continue
+        n = min(want[0] - split, w - s0)
+        if n <= 0:
+            continue
+        cand[:, split:split + n] = src[:, s0:s0 + n]
+        score = _colorbar_score(cand, cfg["colorbar_bbox"])
+        if score > best:
+            best, best_dx, best_arr = score, dx, cand
+    if best < 0.5:
+        print(f"[poll] {product}: image is {w}x{h} (expected {want[0]}x{want[1]}) and the colorbar "
+              f"can't be re-aligned (best {best:.2f}) -- skipping")
+        return None
+    print(f"[poll] {product}: image is {w}x{h}, expected {want[0]}x{want[1]} -- small IMD width drift, "
+          f"legend re-aligned by dx={best_dx} (colorbar match {best:.2f}), using frame")
+    try:   # keep one raw sample per size so the alignment can be checked by eye
+        SIZE_DRIFT_DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+        dbg = SIZE_DRIFT_DEBUG_DIR / f"{product}_{w}x{h}.png"
+        if not dbg.exists():
+            Image.fromarray(src).save(dbg, optimize=True)
+            Image.fromarray(best_arr).save(SIZE_DRIFT_DEBUG_DIR / f"{product}_{w}x{h}_aligned.png", optimize=True)
+    except Exception as e:
+        print(f"[poll] {product}: couldn't save size-drift sample: {e}")
+    return Image.fromarray(best_arr)
+
+
+def frame_wrong_size(img: Image.Image, product: str) -> bool:
+    """Kept for older callers: True when the frame can't be used at all."""
+    return normalize_frame_size(img, product) is None
 
 
 def frame_looks_corrupted(img: Image.Image, product: str) -> bool:
@@ -3616,7 +3678,8 @@ def _load_previous_dbz_for_flow(product: str, state: dict | None = None) -> np.n
     try:
         img = Image.open(existing[-1])
         img.load()
-        if frame_wrong_size(img, product):
+        img = normalize_frame_size(img, product)
+        if img is None:
             return None
         lut = build_lut_from_colorbar(img, product)
         dbz = decode_reflectivity(img, product, lut)
@@ -3769,7 +3832,8 @@ def poll_and_decode(product: str, state: dict, prev_cells: dict, prev_obs_time: 
         print(f"[poll] {product}: fetched data isn't a valid image - skipping this cycle: {e}")
         return None
 
-    if frame_wrong_size(img, product):
+    img = normalize_frame_size(img, product)
+    if img is None:
         # Same handling as an implausible frame: radar offline this cycle,
         # not archived, and drop any cells a placeholder left behind.
         prev_cells[product] = []
@@ -4824,7 +4888,8 @@ def run_pipeline() -> None:
             fallback_dbz = None
             if existing:
                 img = Image.open(existing[-1])
-                if not frame_wrong_size(img, product):
+                img = normalize_frame_size(img, product)
+                if img is not None:
                     lut = build_lut_from_colorbar(img, product)
                     fallback_dbz = decode_reflectivity(img, product, lut)
                     if frame_looks_implausible(fallback_dbz, product):

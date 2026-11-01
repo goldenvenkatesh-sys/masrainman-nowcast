@@ -29,18 +29,44 @@ from .alerts import Nowcast
 W, H = 1080, 1350
 MAP_BOX = (40, 236, 1040, 1086)          # left, top, right, bottom of the map panel
 LOGO = config.ASSETS / "masrainman_logo.png"
-TILE_CACHE = config.ROOT / "tiles_cache" / "esri_lightgray"   # new folder: old CARTO tiles had "API KEY REQUIRED" on them
 BOUNDARIES = config.ASSETS / "boundaries.json"
 
-INK = (17, 20, 28)
-GREY = (90, 98, 112)
 WHITE = (255, 255, 255)
-ACCENT = (225, 0, 160)
+
+# ---------------------------------------------------------------- theme ----
+# CARD_THEME=night (default since 1 Nov 2026, one-day trial): dark navy map
+# with glowing rain colours -- MasRainman's own look, not the white plots
+# other pages use. CARD_THEME=classic brings back the original white card
+# and neon scale exactly as before (set the repo variable to revert).
+THEME = (os.environ.get("CARD_THEME") or "night").strip().lower()
+THEMES = {
+    "classic": dict(
+        ink=(17, 20, 28), grey=(90, 98, 112), paper=(255, 255, 255), halo=(255, 255, 255),
+        sub=(40, 44, 56), sub2=(60, 64, 76), small=(30, 34, 44), accent=(225, 0, 160),
+        accent2=(200, 0, 120), pill=(17, 20, 28), pill_fg=(255, 255, 255), pill_sub=(200, 205, 215),
+        districts=(70, 74, 84), outline=(25, 28, 34), map_bg=(250, 250, 248),
+        dash=(17, 20, 28), arrow=(17, 20, 28), arrow_edge=(255, 255, 255),
+        basemap="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+        tiles="esri_lightgray", tint=None, glow=0, palette=None),
+    "night": dict(
+        ink=(234, 240, 248), grey=(150, 164, 186), paper=(11, 18, 32), halo=(11, 18, 32),
+        sub=(196, 208, 226), sub2=(170, 184, 206), small=(210, 220, 234), accent=(255, 46, 209),
+        accent2=(255, 120, 220), pill=(27, 39, 64), pill_fg=(255, 255, 255), pill_sub=(170, 184, 206),
+        districts=(58, 74, 100), outline=(150, 168, 196), map_bg=(14, 23, 38),
+        dash=(255, 255, 255), arrow=(255, 255, 255), arrow_edge=(11, 18, 32),
+        basemap="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+        tiles="esri_darkgray", tint=(14, 23, 38), glow=6,
+        #           drizzle    light      moderate   mod+       heavy      v.heavy    intense    extreme
+        palette=["#1F6F8B", "#22B8CF", "#38F2A0", "#E8FF3A", "#FFA41B", "#FF3D3D", "#FF2ED1", "#FFFFFF"]),
+}
+T = THEMES.get(THEME, THEMES["night"])
+INK, GREY, PAPER, HALO = T["ink"], T["grey"], T["paper"], T["halo"]
+ACCENT = T["accent"]
+TILE_CACHE = config.ROOT / "tiles_cache" / T["tiles"]   # new folder: old CARTO tiles had "API KEY REQUIRED" on them
 
 # White/light-grey Leaflet basemap that needs no API key (Esri World Light
 # Gray Canvas, 256 px tiles). Override with BASEMAP_URL (+ BASEMAP_TILE_PX).
-BASEMAP_URL = os.environ.get("BASEMAP_URL") or (
-    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}")
+BASEMAP_URL = os.environ.get("BASEMAP_URL") or T["basemap"]
 TILE_PX = int(os.environ.get("BASEMAP_TILE_PX", "256"))
 COARSEN = int(os.environ.get("CARD_BLOCK", "2"))     # 2 x 0.02 deg = ~4.4 km blocks
 
@@ -81,8 +107,13 @@ def hex_rgb(h: str):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
+def card_palette(engine):
+    return T["palette"] or engine.DBZ_BAND_COLORS
+
+
 def band_color(engine, dbz: float):
-    return hex_rgb(engine.DBZ_BAND_COLORS[max(0, min(int((dbz - 20) // 5), len(engine.DBZ_BAND_COLORS) - 1))])
+    pal = card_palette(engine)
+    return hex_rgb(pal[max(0, min(int((dbz - 20) // 5), len(pal) - 1))])
 
 
 # ------------------------------------------------------------ geometry ----
@@ -144,7 +175,7 @@ def _tile(z, x, y) -> Image.Image | None:
 
 
 def basemap(frame: Frame, engine) -> Image.Image:
-    out = Image.new("RGB", (frame.w, frame.h), (250, 250, 248))
+    out = Image.new("RGB", (frame.w, frame.h), T["map_bg"])
     z = int(max(5, min(13, round(math.log2(frame.s * 256 / TILE_PX)))))
     n = 2 ** z
     tw = 256.0 / n                                              # one tile, in world units
@@ -161,6 +192,9 @@ def basemap(frame: Frame, engine) -> Image.Image:
             out.paste(t.resize((size, size), Image.LANCZOS),
                       (int(round((tx * tw - frame.x0) * frame.s)), int(round((ty * tw - frame.y0) * frame.s))))
     if got:
+        if T["tint"] is not None:      # pull Esri's neutral dark grey towards MasRainman navy
+            a = np.asarray(out, dtype=float)
+            out = Image.fromarray((a * 0.82 + np.array(T["tint"], float) * 0.18 + np.array([0, 2, 8])).clip(0, 255).astype(np.uint8))
         return out
     # Fallback: the engine's own (lower-resolution) basemap, washed out to near-white.
     print("[card] basemap tiles unavailable -- using the engine's cached basemap")
@@ -177,6 +211,8 @@ def basemap(frame: Frame, engine) -> Image.Image:
     a = np.asarray(crop, dtype=float)
     wash = 0.55 * a + 0.45 * g[..., None]          # desaturate
     wash = 255 - (255 - wash) * 0.55                # lighten towards white
+    if T["tint"] is not None:                       # night: darken towards navy instead
+        wash = 0.25 * (255 - wash) + np.array(T["map_bg"], float)
     return Image.fromarray(wash.clip(0, 255).astype(np.uint8))
 
 
@@ -204,6 +240,44 @@ def despeckle(a: np.ndarray) -> np.ndarray:
     echo = (a >= 20).astype(int)
     nb = ndimage.convolve(echo, np.ones((3, 3), int), mode="constant") - echo
     return np.where((a >= 30) | ((a >= 20) & (nb >= 3)), a, 0)
+
+
+def smooth_rain(a: np.ndarray) -> np.ndarray:
+    """Less patchy rain blocks (display only -- alerts/captions use the raw grid):
+      1. fill pinholes: an empty block with >= 5 of its 8 neighbours rainy
+         takes the median of those neighbours;
+      2. even out the salt-and-pepper colours inside a rain area: each rainy
+         block below 40 dBZ takes the median of the rainy blocks around it
+         (capped below Heavy), while heavy blocks and local peaks keep their
+         value, so real cores never get washed out or shrunk;
+      3. drop tiny weak fragments: rain areas under 3 blocks that never
+         reach 40 dBZ."""
+    from scipy import ndimage
+    a = a.astype(float)
+    rain = a >= 20
+    pad = np.pad(np.where(rain, a, np.nan), 1, constant_values=np.nan)
+    win = np.lib.stride_tricks.sliding_window_view(pad, (3, 3)).reshape(a.shape + (9,))
+    nb_count = (~np.isnan(win)).sum(axis=2) - rain
+    with np.errstate(all="ignore"):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            med = np.nanmedian(win, axis=2)
+            local_max = np.nanmax(win, axis=2)
+    out = a.copy()
+    fill = (~rain) & (nb_count >= 5)
+    out[fill] = med[fill]
+    # heavy blocks (>= 40 dBZ) are never touched, so cores keep their size
+    smooth = rain & (a < local_max) & (a < 40)
+    out[smooth] = np.minimum(med[smooth], 39.9)
+    lab, n = ndimage.label(out >= 20, structure=np.ones((3, 3)))
+    if n:
+        idx = np.arange(1, n + 1)
+        sizes = ndimage.sum(np.ones_like(out), lab, idx)
+        peaks = ndimage.maximum(out, lab, idx)
+        drop = idx[(sizes < 3) & (peaks < 40)]
+        out[np.isin(lab, drop)] = 0
+    return out
 
 
 def projected_areas(a: np.ndarray, min_blocks: int = 6) -> np.ndarray:
@@ -240,10 +314,16 @@ def draw_blocks(img, a, xs, ys, engine):
         if x1 < 0 or y1 < 0 or x0 > img.width or y0 > img.height:
             continue
         d.rectangle([x0, y0, x1, y1], fill=band_color(engine, a[r, c]) + (235,))
+    if T["glow"]:                      # soft neon glow under the blocks (night theme)
+        from PIL import ImageFilter
+        glow = layer.filter(ImageFilter.GaussianBlur(T["glow"]))
+        ga = np.asarray(glow).copy()
+        ga[..., 3] = (ga[..., 3].astype(float) * 0.85).astype(np.uint8)
+        img.alpha_composite(Image.fromarray(ga, "RGBA"))
     img.alpha_composite(layer)
 
 
-def draw_dashed_outline(d, mask, xs, ys, w, h, color=INK, width=3):
+def draw_dashed_outline(d, mask, xs, ys, w, h, color=T["dash"], width=3):
     """Stair-step outline of a block mask, dashed (each block edge is one
     dash, which gives the classic dashed-polygon look)."""
     pad = np.pad(mask, 1)
@@ -283,7 +363,7 @@ def arrowhead(d, x, y, bearing, size=17):
     left = (x - ux * size * .7 + px_ * size * .75, y - uy * size * .7 + py_ * size * .75)
     notch = (x - ux * size * .25, y - uy * size * .25)
     right = (x - ux * size * .7 - px_ * size * .75, y - uy * size * .7 - py_ * size * .75)
-    d.polygon([tip, left, notch, right], fill=INK, outline=WHITE, width=2)
+    d.polygon([tip, left, notch, right], fill=T["arrow"], outline=T["arrow_edge"], width=2)
 
 
 def draw_boundaries(d, frame):
@@ -291,7 +371,7 @@ def draw_boundaries(d, frame):
         return
     b = json.loads(BOUNDARIES.read_text())
     s, w_, n, e = frame.bounds()
-    for key, width, color in (("districts", 2, (70, 74, 84)), ("outline", 4, (25, 28, 34))):
+    for key, width, color in (("districts", 2, T["districts"]), ("outline", 4, T["outline"])):
         for line in b.get(key, []):
             lo_, la_ = [p[0] for p in line], [p[1] for p in line]
             if max(lo_) < w_ - .2 or min(lo_) > e + .2 or max(la_) < s - .2 or min(la_) > n + .2:
@@ -320,7 +400,7 @@ def mixed_text(d, xy, text, size, fill, latin="semi", tamil="ta", anchor="lm", m
 
 
 def halo_text(d, xy, s, f, fill=INK, stroke=5, anchor="mm"):
-    d.text(xy, s, font=f, fill=fill, stroke_width=stroke, stroke_fill=WHITE, anchor=anchor)
+    d.text(xy, s, font=f, fill=fill, stroke_width=stroke, stroke_fill=HALO, anchor=anchor)
 
 
 # ------------------------------------------------------------- the card ----
@@ -359,7 +439,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     frame = Frame(center, view_lat_deg, mw, mh)
     panel = basemap(frame, engine).convert("RGBA")
 
-    a_now = despeckle(coarsen(obs, COARSEN))
+    a_now = smooth_rain(despeckle(coarsen(obs, COARSEN)))
     xs, ys = block_geometry(g, COARSEN, frame, a_now.shape)
     draw_blocks(panel, a_now, xs, ys, engine)
     d = ImageDraw.Draw(panel)
@@ -384,7 +464,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     for lat, lon in {(r[0], r[1]) for r in rings}:
         x, y = frame.px(lon, lat)
         if 0 <= x <= mw and 0 <= y <= mh:
-            d.ellipse([x - 11, y - 11, x + 11, y + 11], fill=WHITE, outline=INK, width=3)
+            d.ellipse([x - 11, y - 11, x + 11, y + 11], fill=HALO, outline=INK, width=3)
             d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=INK)
 
     # motion arrowheads
@@ -413,7 +493,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         lvl = max([k for k in SHORT_EN if dbz >= k] + [20])
         line3 = SHORT_EN[lvl] + ("" if kind == "now" else f" ~{p.eta_clock or str(p.eta_min) + ' min'}")
         name_en, name_ta = (f"Near {p.en}", f"{p.ta} அருகே") if getattr(p, "near", False) else (p.en, p.ta)
-        lines = [(name_en, f_name, INK), (name_ta, f_ta, (40, 44, 56)), (line3, f_int, INK)]
+        lines = [(name_en, f_name, INK), (name_ta, f_ta, T["sub"]), (line3, f_int, INK)]
         bw, bh = max(text_w(d, s, f) for s, f, _ in lines) + 10, 88
         box = None
         for cy in (y + 6 + bh / 2, y - 6 - bh / 2):           # below the dot, else above
@@ -425,7 +505,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
             continue
         occupied.append(box)
         shown.add(p.en)
-        d.ellipse([x - 5, y - 5, x + 5, y + 5], fill=INK, outline=WHITE, width=2)
+        d.ellipse([x - 5, y - 5, x + 5, y + 5], fill=INK, outline=HALO, width=2)
         ty = box[1] + 15
         for s, f, col in lines:
             halo_text(d, (x, ty), s, f, fill=col, stroke=5)
@@ -441,13 +521,13 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
             continue
         occupied.append(box)
         d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=INK)
-        halo_text(d, (x, y - 14), en, f_small, fill=(30, 34, 44), stroke=4)
+        halo_text(d, (x, y - 14), en, f_small, fill=T["small"], stroke=4)
 
     # ------------------------------------------------------- full card ----
-    card = Image.new("RGBA", (W, H), WHITE)
+    card = Image.new("RGBA", (W, H), PAPER + (255,))
     card.alpha_composite(panel, (MAP_BOX[0], MAP_BOX[1]))
     d = ImageDraw.Draw(card)
-    d.rectangle(MAP_BOX, outline=INK, width=3)
+    d.rectangle(MAP_BOX, outline=T["outline"] if T["tint"] else INK, width=3)
 
     # header
     if not LOGO.exists():
@@ -469,22 +549,23 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         day = ""
     fb, fs = font("xbold", 30), font("semi", 16)
     cw = max(text_w(d, t_now, fb), text_w(d, day + " • IST", fs) + 16) + 36
-    d.rounded_rectangle([W - 40 - cw, 26, W - 40, 106], 18, fill=INK)
-    d.text((W - 40 - cw + 18, 28), t_now, font=fb, fill=WHITE)
+    d.rounded_rectangle([W - 40 - cw, 26, W - 40, 106], 18, fill=T["pill"])
+    d.text((W - 40 - cw + 18, 28), t_now, font=fb, fill=T["pill_fg"])
     d.ellipse([W - 40 - cw + 18, 80, W - 40 - cw + 28, 90], fill=(255, 40, 80))
-    d.text((W - 40 - cw + 34, 74), day + " • IST", font=fs, fill=(200, 205, 215))
+    d.text((W - 40 - cw + 34, 74), day + " • IST", font=fs, fill=T["pill_sub"])
 
     peak = max([p.now_dbz for p in nc.raining] + [p.soon_dbz for p in nc.coming] + [0])
     den, dta = describe(peak)
     t1, t2 = f"{title_en}: {den}", f"{title_ta}: {dta}"
     d.text((W / 2, 140), t1, font=fit_font(d, t1, "xbold", 30, 1000), fill=INK, anchor="mm")
-    mixed_text(d, (W / 2, 175), t2, 21, (200, 0, 120), anchor="mm", max_w=1000)
+    mixed_text(d, (W / 2, 175), t2, 21, T["accent2"], anchor="mm", max_w=1000)
     key = (f"Colours: now {t_now}     Dashed: ~{t_proj}     Arrows: motion" if t_proj
            else f"Colours: rain on radar at {t_now}  (motion needs one more radar frame)")
     d.text((W / 2, 210), key, font=fit_font(d, key, "reg", 21, 1000), fill=INK, anchor="mm")
 
     # colour pill legend
-    n = len(engine.DBZ_BAND_COLORS)
+    pal = card_palette(engine)
+    n = len(pal)
     x0, x1 = 60, W - 60
     seg = (x1 - x0) / n
     ytop = MAP_BOX[3] + 22
@@ -494,7 +575,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     card.alpha_composite(shadow)
     bar = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     bd = ImageDraw.Draw(bar)
-    for i, hc in enumerate(engine.DBZ_BAND_COLORS):
+    for i, hc in enumerate(pal):
         bd.rectangle([x0 + i * seg, ybar, x0 + (i + 1) * seg, ybar + bh], fill=hex_rgb(hc) + (255,))
     m = Image.new("L", (W, H), 0)
     ImageDraw.Draw(m).rounded_rectangle([x0, ybar, x1, ybar + bh], bh // 2, fill=255)
@@ -506,7 +587,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         d.text((cx, ytop + 12), LEGEND_EN[i], font=fit_font(d, LEGEND_EN[i], "xbold", 19, seg - 6),
                fill=INK, anchor="mm")
         d.text((cx, ybar + bh + 17), LEGEND_TA[i], font=fit_font(d, LEGEND_TA[i], "ta", 17, seg - 6),
-               fill=(60, 64, 76), anchor="mm")
+               fill=T["sub2"], anchor="mm")
         d.text((x0 + i * seg, ybar + bh + 42), f"{20 + 5 * i}{'+' if i == n - 1 else ''}",
                font=font("reg", 15), fill=GREY, anchor="mm" if i else "lm")
     d.text((x1, ybar + bh + 42), "dBZ", font=font("reg", 15), fill=GREY, anchor="rm")
