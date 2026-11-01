@@ -76,6 +76,54 @@ def _forward(st: dict, cards: list[tuple[bytes, str]]) -> None:
         print(f"[social] forward album to second channel failed: {e}")
 
 
+def wa_share_footer() -> str:
+    return ("\n\n🔔 இந்த MasRainman WhatsApp சேனலை உங்கள் குடும்பம், நண்பர்கள் மற்றும் ஊர் குழுக்களுக்கு "
+            "பகிருங்கள் — ஒவ்வொரு மணி நேரமும் தானியங்கி மழை நவ்காஸ்ட் எச்சரிக்கை இலவசமாக கிடைக்கும். "
+            "Share this channel with your family, friends and local groups so everyone gets automatic "
+            f"hourly rain nowcast alerts for free. Follow 👉 {config.WA_CHANNEL_LINK}")
+
+
+def _whatsapp_hourly(st: dict, cards: list[tuple[bytes, str]]) -> None:
+    """Every WA_CHANNEL_EVERY_MIN minutes, post this cycle's region cards to the
+    WhatsApp Channel with the share-the-channel footer. Uses Whapi if its
+    secrets are set; otherwise queues the cards for the wa_channel/ (Baileys)
+    workflow step. Never raises: must not disturb Telegram posting."""
+    if not (config.WA_CHANNEL_AUTO and cards):
+        return
+    try:
+        now = datetime.now(timezone.utc)
+        prev = st.get("wa_channel_last_utc")
+        if prev:
+            age_min = (now - datetime.fromisoformat(prev)).total_seconds() / 60
+            if age_min < max(config.WA_CHANNEL_EVERY_MIN - 5, 1):
+                print(f"[social] WhatsApp channel skipped (last post {age_min:.0f} min ago)")
+                return
+        footer = wa_share_footer()
+        if publishers.whatsapp_enabled():
+            ok = 0
+            for image, caption in cards:
+                try:
+                    publishers.post_whatsapp(image, caption + footer)
+                    ok += 1
+                except Exception as e:
+                    print(f"[social] WhatsApp channel (Whapi) post failed: {e}")
+            if ok:
+                st["wa_channel_last_utc"] = now.isoformat(timespec="seconds")
+            print(f"[social] WhatsApp channel: {ok}/{len(cards)} card(s) posted via Whapi")
+            return
+        q = config.WA_QUEUE_DIR
+        q.mkdir(parents=True, exist_ok=True)
+        for old in q.iterdir():
+            old.unlink()
+        for i, (image, caption) in enumerate(cards):
+            (q / f"{i:02d}.jpg").write_bytes(image)
+            (q / f"{i:02d}.txt").write_text(caption + footer, encoding="utf-8")
+        st["wa_channel_last_utc"] = now.isoformat(timespec="seconds")
+        print(f"[social] WhatsApp channel: {len(cards)} card(s) queued in {q}")
+    except Exception as e:
+        print(f"[social] WhatsApp channel hourly post failed: {e}")
+
+
 # ------------------------------------------------------------------ cycle --
 def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     """items: (region key, card path, caption) for every region with rain."""
@@ -138,6 +186,9 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
 
     # 3) one album for the second channel (every TELEGRAM_FORWARD_EVERY_MIN)
     _forward(st, forward_cards)
+
+    # 4) automatic hourly WhatsApp Channel post (with share-the-channel footer)
+    _whatsapp_hourly(st, forward_cards)
 
     st["last_signature"] = sig
     _save(st)

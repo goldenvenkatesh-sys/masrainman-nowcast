@@ -55,6 +55,13 @@ FB_GRAPH_VERSION = _env("FB_GRAPH_VERSION", "v23.0")
 WHAPI_TOKEN = _env("WHAPI_TOKEN")
 WHAPI_CHANNEL_ID = _env("WHAPI_CHANNEL_ID")    # looks like 1203630000000000@newsletter
 WHAPI_BASE_URL = _env("WHAPI_BASE_URL", "https://gate.whapi.cloud")
+# Automatic hourly post to the WhatsApp Channel (no Yes button needed).
+# Sent through Whapi when WHAPI_* is set; otherwise the cards are queued in
+# output/wa_queue/ and the free wa_channel/ (Baileys) step in the workflow posts them.
+WA_CHANNEL_AUTO = _flag("WA_CHANNEL_AUTO", True)
+WA_CHANNEL_EVERY_MIN = int(_env("WA_CHANNEL_EVERY_MIN", "60"))
+WA_CHANNEL_LINK = _env("WA_CHANNEL_LINK", "https://whatsapp.com/channel/0029VaBMeqH4Y9lg93fA8w3Y")
+WA_QUEUE_DIR = OUTPUT_DIR / "wa_queue"
 
 # --- What to post -------------------------------------------------------------
 # Minimum dBZ for a place to be named (and for a region to get a card):
