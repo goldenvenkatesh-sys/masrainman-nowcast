@@ -83,7 +83,7 @@ def wa_share_footer() -> str:
             f"hourly rain nowcast alerts for free. Follow 👉 {config.WA_CHANNEL_LINK}")
 
 
-def _whatsapp_hourly(st: dict, cards: list[tuple[bytes, str]]) -> None:
+def _whatsapp_hourly(st: dict, cards: list[tuple[bytes, str]], peak_dbz: float = 0.0) -> None:
     """Every WA_CHANNEL_EVERY_MIN minutes, post this cycle's region cards to the
     WhatsApp Channel with the share-the-channel footer. Uses Whapi if its
     secrets are set; otherwise queues the cards for the wa_channel/ (Baileys)
@@ -92,12 +92,16 @@ def _whatsapp_hourly(st: dict, cards: list[tuple[bytes, str]]) -> None:
         return
     try:
         now = datetime.now(timezone.utc)
+        peak = peak_dbz >= config.WA_CHANNEL_PEAK_DBZ
+        every = config.WA_CHANNEL_PEAK_EVERY_MIN if peak else config.WA_CHANNEL_EVERY_MIN
         prev = st.get("wa_channel_last_utc")
         if prev:
             age_min = (now - datetime.fromisoformat(prev)).total_seconds() / 60
-            if age_min < max(config.WA_CHANNEL_EVERY_MIN - 5, 1):
-                print(f"[social] WhatsApp channel skipped (last post {age_min:.0f} min ago)")
+            if age_min < max(every - 5, 1):
+                print(f"[social] WhatsApp channel skipped (last post {age_min:.0f} min ago, "
+                      f"{'peak' if peak else 'normal'} mode = every {every} min, peak {peak_dbz:.0f} dBZ)")
                 return
+        print(f"[social] WhatsApp channel: {'PEAK' if peak else 'normal'} mode (peak {peak_dbz:.0f} dBZ, every {every} min)")
         footer = wa_share_footer()
         if publishers.whatsapp_enabled():
             ok = 0
@@ -188,7 +192,7 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     _forward(st, forward_cards)
 
     # 4) automatic hourly WhatsApp Channel post (with share-the-channel footer)
-    _whatsapp_hourly(st, forward_cards)
+    _whatsapp_hourly(st, forward_cards, float(doc.get("peak_dbz") or 0))
 
     st["last_signature"] = sig
     _save(st)

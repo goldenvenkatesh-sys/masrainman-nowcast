@@ -52,6 +52,7 @@ def build_items(engine):
         print(f"[cycle] {key}: card -> {path} (view centre {center[0]:.2f},{center[1]:.2f}, peak {peak:.0f} dBZ)")
         print(caption)
         items.append((key, path, caption))
+        doc["peak_dbz"] = max(float(doc.get("peak_dbz") or 0), float(peak or 0))   # for WhatsApp peak-mode
     return items, doc
 
 

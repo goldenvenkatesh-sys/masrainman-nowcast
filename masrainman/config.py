@@ -60,6 +60,10 @@ WHAPI_BASE_URL = _env("WHAPI_BASE_URL", "https://gate.whapi.cloud")
 # output/wa_queue/ and the free wa_channel/ (Baileys) step in the workflow posts them.
 WA_CHANNEL_AUTO = _flag("WA_CHANNEL_AUTO", True)
 WA_CHANNEL_EVERY_MIN = int(_env("WA_CHANNEL_EVERY_MIN", "60"))
+# Peak events: when any region's card shows at least WA_CHANNEL_PEAK_DBZ
+# (45 dBZ = heavy/intense rain), post every WA_CHANNEL_PEAK_EVERY_MIN instead.
+WA_CHANNEL_PEAK_DBZ = float(_env("WA_CHANNEL_PEAK_DBZ", "45"))
+WA_CHANNEL_PEAK_EVERY_MIN = int(_env("WA_CHANNEL_PEAK_EVERY_MIN", "30"))
 WA_CHANNEL_LINK = _env("WA_CHANNEL_LINK", "https://whatsapp.com/channel/0029VaBMeqH4Y9lg93fA8w3Y")
 WA_QUEUE_DIR = OUTPUT_DIR / "wa_queue"
 
