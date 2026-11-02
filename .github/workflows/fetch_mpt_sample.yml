@@ -1,4 +1,4 @@
-name: Fetch Machilipatnam calibration sample
+name: Fetch Machilipatnam + Sriharikota calibration sample
 
 # One-off: grabs a few real Machilipatnam (and Visakhapatnam) DWR frames so the
 # new radar can be calibrated (this sandbox can't reach mausam.imd.gov.in).
@@ -22,7 +22,7 @@ jobs:
           mkdir -p debug/mpt_sample
           for round in 1 2 3; do
             ts=$(date -u +%Y%m%dT%H%M%SZ)
-            for p in caz_mpt ppi_mpt ppz_mpt caz_vsk ppi_vsk ppz_vsk; do
+            for p in caz_shr ppi_shr ppz_shr caz_srh ppz_srh caz_sri ppz_sri caz_mpt ppz_mpt; do
               code=$(curl -s -m 40 -A "Mozilla/5.0" -o "debug/mpt_sample/${p}_${ts}.gif" -w "%{http_code}" "https://mausam.imd.gov.in/Radar/${p}.gif" || echo 000)
               echo "$p round $round -> HTTP $code"
               if [ "$code" != "200" ]; then rm -f "debug/mpt_sample/${p}_${ts}.gif"; fi
