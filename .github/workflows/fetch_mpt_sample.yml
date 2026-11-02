@@ -1,0 +1,39 @@
+name: Fetch Kochi calibration sample
+
+# One-off: grabs a few real Machilipatnam (and Visakhapatnam) DWR frames so the
+# new radar can be calibrated (this sandbox can't reach mausam.imd.gov.in).
+on:
+  push:
+    paths: [".github/workflows/fetch_mpt_sample.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1, ref: main }
+      - name: Download frames (3 rounds, 4 min apart)
+        run: |
+          mkdir -p debug/mpt_sample
+          for round in 1 2; do
+            ts=$(date -u +%Y%m%dT%H%M%SZ)
+            for p in caz_koc ppi_koc ppz_koc; do
+              code=$(curl -s -m 40 -A "Mozilla/5.0" -o "debug/mpt_sample/${p}_${ts}.gif" -w "%{http_code}" "https://mausam.imd.gov.in/Radar/${p}.gif" || echo 000)
+              echo "$p round $round -> HTTP $code"
+              if [ "$code" != "200" ]; then rm -f "debug/mpt_sample/${p}_${ts}.gif"; fi
+            done
+            [ $round -lt 3 ] && sleep 240
+          done
+          ls -la debug/mpt_sample
+      - name: Commit
+        run: |
+          git config user.name masrainman-bot
+          git config user.email masrainman-bot@users.noreply.github.com
+          git add debug/mpt_sample
+          git commit -m "Machilipatnam calibration sample frames" || exit 0
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && break; sleep 5; done
