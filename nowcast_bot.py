@@ -181,6 +181,29 @@ RADAR_SITES = {
         "site_elev_m": 27.0,       # printed in the frame's metadata panel
         "band": "S",               # UNVERIFIED -- not stated on the frame
     },
+
+    # --- Seventh radar: IMD's Machilipatnam DWR (caz_mpt.gif 250 km MAXZ +
+    # ppz_mpt.gif 500 km PPZ). Added 2 Nov 2026 to follow Cyclone Murasu
+    # into the south/central Andhra coast. Site measured from the caz_mpt
+    # frame itself: printed lon gridlines 79-83E at x=24/164/303/442/581,
+    # lat gridlines 18-15N at y=311/455/599/744 (0.769 km/px, matching the
+    # frame's "Hor Res: 0.769 km/pixel"); the white site dot at
+    # (323.5, 573.3) maps to 16.181N 81.149E.
+    "machilipatnam": {
+        "site_lat": 16.181,
+        "site_lon": 81.149,
+        "site_elev_m": 10.0,       # UNVERIFIED -- coastal-site guess
+        "band": "S",               # UNVERIFIED -- not stated on the frame
+    },
+
+    # --- Eighth radar: ISRO's Sriharikota (SHAR) DWR, long-range PPZ only.
+    # Coordinates and height are printed on the frame ("13.6645N, 80.2274E, 29m").
+    "sriharikota": {
+        "site_lat": 13.6645,
+        "site_lon": 80.2274,
+        "site_elev_m": 29.0,
+        "band": "S",               # "SDWR SHAR" on the frame
+    },
 }
 
 PRODUCT_RADAR = {
@@ -190,6 +213,8 @@ PRODUCT_RADAR = {
     "cni_maxz": "chennai", "cni_ppz": "chennai", "cni_ppi": "chennai",
     "mlr_maxz": "mangalore",
     "tvm_ppi": "trivandrum",
+    "mpt_maxz": "machilipatnam", "mpt_ppz": "machilipatnam",
+    "shr_ppz": "sriharikota",
 }
 
 EFFECTIVE_EARTH_RADIUS_KM = 8494.0  # standard 4/3-Earth-radius model
@@ -918,6 +943,112 @@ PRODUCTS = {
         # doesn't catch, without touching real storm blobs.
         "erode_thin_residual": True,
     },
+
+    # --- Machilipatnam DWR (see RADAR_SITES["machilipatnam"]), added 2 Nov 2026.
+    # Same SELEX "Rainbow" layout as Chennai (cross-section strips top/right,
+    # plan view bottom-left with lat/lon gridlines) but drawn over a
+    # full-colour terrain/sea basemap like Mangaluru's. The basemap is
+    # dithered from the same 216-colour web palette as the colour bar, so only
+    # exact colour collisions matter (DIST_THRESHOLD=2, palette steps are 51):
+    # measured on clean land/sea patches of 3 real frames (04:38-04:47 UTC),
+    # the sea texture is ~56% (102,204,255)+(153,204,255) -- both 32-36 dBZ
+    # swatch colours -- and labels/gridline text are pure white (a 37 dBZ
+    # colour). Those three are excluded; land relief colours are not in the
+    # LUT at all. Rebuild with a background_image (tools/build_mlr_background.py
+    # style) once a few days of frames are archived, if false echo shows up.
+    "mpt_maxz": {
+        "url": "https://mausam.imd.gov.in/Radar/caz_mpt.gif",
+        "role": "aloft_early_warning",
+        "range_km": 250.0,             # printed "Range: 250 km"
+        "elevation_deg": None,
+        "image_size": (1119, 900),
+        "site_px": (323.5, 573.3),     # white site dot
+        "km_per_px": 1.0 / 0.769,      # PIXELS per km; frame prints "Hor Res: 0.769 km/pixel"
+        "colorbar_bbox": (914, 74, 984, 604),
+        "colorbar_all_columns": True,
+        "min_swatch_rows": 3,
+        "value_at_top": 61.25,         # 16 swatches of 2.5 dB, 20.0 ... 60.0+
+        "value_at_bottom": 21.25,
+        "colorbar_bands": [61.25, 58.75, 56.25, 53.75, 51.25, 48.75, 46.25, 43.75,
+                           41.25, 38.75, 36.25, 33.75, 31.25, 28.75, 26.25, 23.75, 21.25],
+        "timestamp_bbox": (905, 28, 1119, 50),
+        "elevation_bbox": None,
+        "plot_bbox": (0, 250, 650, 900),
+        "cell_dbz_threshold": 35,
+        "exclude_colors": [(102, 204, 255), (153, 204, 255), (255, 255, 255)],
+        "despeckle_min_px": 8,
+        "erode_thin_residual": True,
+        # Red/purple state and district border lines (thick where they overlap,
+        # e.g. Pulicat) are exact >=50 dBZ colours: pixels with the same reddish
+        # colour in every sample frame, grown 1 px.
+        "static_exclude_mask": "masks/mpt_maxz_static_exclude.png",
+        "min_strong_blob": (50.0, 15),
+        "label_exclude_boxes": [],
+    },
+    # 500 km PPZ (0.2 deg, 1.429 km/px) -- only its 250-500 km ring is used
+    # (mask_within_km), the same way kkl_ppz cedes the inner disc to kkl_maxz.
+    # This is what sees the cyclone core over the sea south-east of Nellore.
+    "mpt_ppz": {
+        "url": "https://mausam.imd.gov.in/Radar/ppz_mpt.gif",
+        "role": "regional_early_warning",
+        "range_km": 500.0,
+        "elevation_deg": 0.2,
+        "image_size": (914, 700),
+        "site_px": (345.8, 348.3),     # white site cross
+        "km_per_px": 1.0 / 1.429,      # PIXELS per km; frame prints "Resolution: 1.429 km/pixel"
+        "colorbar_bbox": (712, 74, 784, 454),
+        "colorbar_all_columns": True,
+        "min_swatch_rows": 3,
+        "value_at_top": 61.25,
+        "value_at_bottom": 21.25,
+        "colorbar_bands": [61.25, 58.75, 56.25, 53.75, 51.25, 48.75, 46.25, 43.75,
+                           41.25, 38.75, 36.25, 33.75, 31.25, 28.75, 26.25, 23.75, 21.25],
+        "timestamp_bbox": (700, 28, 914, 50),
+        "elevation_bbox": None,
+        "plot_bbox": (0, 0, 698, 700),
+        "cell_dbz_threshold": 30,
+        "mask_within_km": 250.0,
+        "exclude_colors": [(102, 204, 255), (153, 204, 255), (255, 255, 255)],
+        "despeckle_min_px": 8,
+        "erode_thin_residual": True,
+        # Red/purple state and district border lines (thick where they overlap,
+        # e.g. Pulicat) are exact >=50 dBZ colours: pixels with the same reddish
+        # colour in every sample frame, grown 1 px.
+        "static_exclude_mask": "masks/mpt_ppz_static_exclude.png",
+        "min_strong_blob": (50.0, 15),
+        "label_exclude_boxes": [],
+    },
+
+    # --- Sriharikota (ISRO SHAR) S-band DWR, 490 km PPI_Z at 0.2 deg
+    # (ppz_shr.gif). Added 2 Nov 2026 for Cyclone Murasu. Full-resolution
+    # matplotlib render (same family as NIOT's ppz_plk): plan view x 30-2430,
+    # y 40-2439, azimuthal (rings are circles round the site). Site pixel and
+    # scale from the dashed range rings: centre (1230, 1239), 100/150/200/250 km
+    # rings at r = 238/359/479/599 px and the 490 km ring at 1173 px ->
+    # 2.396 px per km. Site coordinates are printed on the frame itself.
+    # Colour bar is continuous, 60 dBZ at y=723 down to 20 dBZ at y=2437
+    # (the white 40 dBZ band sits at the midpoint, y 1541-1621).
+    "shr_ppz": {
+        "url": "https://mausam.imd.gov.in/Radar/ppz_shr.gif",
+        "role": "regional_early_warning",
+        "range_km": 490.0,
+        "elevation_deg": 0.2,
+        "image_size": (3116, 2494),
+        "site_px": (1230.0, 1239.0),
+        "km_per_px": 2.396,            # PIXELS per km
+        "colorbar_bbox": (2673, 724, 2727, 2437),
+        "value_at_top": 60.0,
+        "value_at_bottom": 20.0,
+        "timestamp_bbox": (2440, 395, 3116, 440),
+        "elevation_bbox": None,
+        "plot_bbox": (30, 40, 2430, 2439),
+        "cell_dbz_threshold": 30,
+        "max_range_km": 450.0,
+        "exclude_colors": [(254, 254, 254), (255, 255, 255)],
+        "despeckle_min_px": 30,
+        "erode_thin_residual": True,
+        "label_exclude_boxes": [],
+    },
 }
 
 POLL_SECONDS = 120
@@ -1009,7 +1140,7 @@ STALE_OBS_MINUTES = 60
 # not product, since a cell's product can be either of Karaikal's two.
 # Radars not listed here (niot, kochi) are unrestricted — this is currently
 # a Karaikal-only concern.
-ARROW_MAX_RANGE_KM = {"karaikal": 250.0, "chennai": 250.0}
+ARROW_MAX_RANGE_KM = {"karaikal": 250.0, "chennai": 250.0, "machilipatnam": 250.0}
 
 # === CELL 6 (georeferencing) ===
 def site_for(product: str) -> dict:
@@ -1463,6 +1594,22 @@ def build_lut_from_colorbar(img: Image.Image, product: str) -> list[tuple[tuple[
         values = top_val + (bot_val - top_val) * (np.arange(h) / (h - 1))
 
     bands = cfg.get("colorbar_bands")
+    if cfg.get("colorbar_all_columns"):
+        # Machilipatnam / Sriharikota (2 Nov 2026): the colour bar is DITHERED --
+        # each 2.5 dB swatch mixes 3-5 web-palette colours, and the same colour
+        # shows up in neighbouring swatches too. The single middle column misses
+        # some of them and gives a shared colour whichever value its last row
+        # had. Sample every column instead and give each colour the median
+        # value of the rows it appears in; min_swatch_rows then counts rows.
+        from collections import defaultdict
+        rows_of = defaultdict(list)
+        for y in range(h):
+            val = (bands[min(int(y / h * len(bands)), len(bands) - 1)] if bands
+                   else round(float(values[y]), 1))
+            for c in {tuple(int(v) for v in px) for px in bar[y]}:
+                rows_of[c].append(val)
+        min_rows = cfg.get("min_swatch_rows") or 1
+        return [(c, round(float(np.median(v)), 1)) for c, v in rows_of.items() if len(v) >= min_rows]
     lut = []
     for y in range(h):
         rgb = tuple(int(v) for v in bar[y, bar.shape[1] // 2])
@@ -2396,10 +2543,14 @@ PRODUCT_STYLE = {
     "cni_ppi": {"color": "#e377c2", "label": "Chennai DWR PPI (0.2 deg)"},
     "mlr_maxz": {"color": "#bcbd22", "label": "Mangaluru DWR MAXZ - aloft / building"},
     "tvm_ppi": {"color": "#9467bd", "label": "Trivandrum DWR PPI (2 deg)"},
+    "mpt_maxz": {"color": "#ff7f0e", "label": "Machilipatnam DWR MAXZ - aloft / building"},
+    "mpt_ppz": {"color": "#aec7e8", "label": "Machilipatnam Extended Radar"},
+    "shr_ppz": {"color": "#c5b0d5", "label": "Sriharikota Long Range Radar"},
 }
 
 RADAR_MARKER_LABEL = {"niot": "NIOT X-DWR Chennai", "karaikal": "Karaikal DWR",
-                       "kochi": "Kochi DWR", "trivandrum": "Trivandrum DWR"}
+                       "kochi": "Kochi DWR", "trivandrum": "Trivandrum DWR",
+                       "machilipatnam": "Machilipatnam DWR", "sriharikota": "Sriharikota (SHAR) DWR"}
 
 # CARTO now requires an API key even for the free Voyager basemap tiles.
 # NOTE: this key travels in the tile URL itself, so it's visible to anyone
@@ -3516,7 +3667,7 @@ OUTPUT_HTML.parent.mkdir(parents=True, exist_ok=True)
 # this line is the only change needed to turn them on for real here.
 # cni_ppz (Chennai Extended) switched off 12 Oct 2026: its 250-600 km ring drew ~400 strong echo px inside Karaikal's range
 # where Karaikal MAXZ showed none. Add it back here once it is validated against the short-range radars.
-POLLED_PRODUCTS = ("maxz", "kkl_maxz", "kkl_ppz", "cni_maxz", "cni_ppi", "mlr_maxz", "tvm_ppi")
+POLLED_PRODUCTS = ("maxz", "kkl_maxz", "kkl_ppz", "cni_maxz", "cni_ppi", "mlr_maxz", "tvm_ppi", "mpt_maxz", "mpt_ppz", "shr_ppz")
 
 # How many archived frames to keep per product. Kept small on purpose --
 # this repo is committing binary GIFs on every run, and unlike the

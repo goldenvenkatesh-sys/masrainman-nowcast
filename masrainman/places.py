@@ -248,6 +248,16 @@ PLACES = [
     ("Punganur", "புங்கனூர்", 13.366, 78.575, 2, "AP"),
     ("Palamaner", "பலமனேர்", 13.200, 78.747, 2, "AP"),
     ("Kuppam", "குப்பம்", 12.750, 78.343, 2, "AP"),
+    # Central coastal AP -- Machilipatnam radar coverage (added 2 Nov 2026)
+    ("Chirala", "சீராலா", 15.824, 80.352, 2, "AP"),
+    ("Bapatla", "பாபட்லா", 15.904, 80.467, 2, "AP"),
+    ("Markapur", "மார்க்காபூர்", 15.735, 79.270, 2, "AP"),
+    ("Narasaraopet", "நரசராவ்பேட்டை", 16.235, 80.049, 2, "AP"),
+    ("Repalle", "ரேபல்லே", 16.018, 80.829, 2, "AP"),
+    ("Tenali", "தெனாலி", 16.243, 80.640, 2, "AP"),
+    ("Guntur", "குண்டூர்", 16.307, 80.437, 1, "AP"),
+    ("Vijayawada", "விஜயவாடா", 16.506, 80.648, 1, "AP"),
+    ("Machilipatnam", "மச்சிலிப்பட்டினம்", 16.187, 81.139, 1, "AP"),
     # --- Karnataka: coast, Malnad, Kodagu, south interior ---
     ("Bantwal", "பண்ட்வால்", 12.890, 75.035, 2, "KA"),
     ("Belthangady", "பெல்தங்கடி", 12.989, 75.298, 2, "KA"),

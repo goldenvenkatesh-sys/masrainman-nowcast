@@ -49,7 +49,7 @@ REGIONS = [
     ("kln", "North Kerala", "வட கேரளா", (10.2, 74.8, 12.8, 77.0), {"KL"}, lambda la, lo: la >= 10.25),
     ("kac", "Coastal Karnataka", "கடலோர கர்நாடகா", (12.3, 73.8, 15.0, 75.6), {"KA"}, lambda la, lo: lo < 75.45),
     ("blr", "Bengaluru", "பெங்களூரு", (12.4, 76.9, 13.7, 78.3), {"KA"}, lambda la, lo: lo >= 76.95),
-    ("ap", "South Andhra Pradesh", "தென் ஆந்திரா", (13.15, 77.8, 15.6, 80.4), {"AP"}, None),
+    ("ap", "South Andhra Pradesh", "தென் ஆந்திரா", (13.15, 77.8, 16.7, 81.4), {"AP"}, None),
 ]
 HASHTAGS = {"chn": "#ChennaiRains #ChennaiWeather",
             "tnni": "#TamilNaduRains #VelloreRains #TiruvannamalaiRains #VillupuramRains",
@@ -61,14 +61,14 @@ HASHTAGS = {"chn": "#ChennaiRains #ChennaiWeather",
             "kln": "#KeralaRains #KozhikodeRains #KannurRains",
             "kac": "#KarnatakaRains #MangaluruRains #UdupiRains",
             "blr": "#BengaluruRains #BangaloreWeather",
-            "ap": "#AndhraPradeshRains #TirupatiRains #NelloreRains"}
+            "ap": "#AndhraPradeshRains #TirupatiRains #NelloreRains #OngoleRains"}
 # Which IMD radars actually cover each region -- used only to say in the
 # caption when one of them has stopped updating (alerts.radar_down_line).
 REGION_RADARS = {"chn": {"chennai", "niot"}, "tnni": {"chennai"},
                  "delta": {"karaikal", "chennai"}, "tnc": {"karaikal"},
                  "tnw": {"karaikal"}, "tns": {"karaikal", "trivandrum"},
                  "kls": {"trivandrum", "kochi"}, "kln": {"kochi", "mangalore"},
-                 "kac": {"mangalore"}, "blr": {"chennai"}, "ap": {"chennai"}}
+                 "kac": {"mangalore"}, "blr": {"chennai"}, "ap": {"chennai", "machilipatnam"}}
 ALL_KEYS = [r[0] for r in REGIONS]
 # Older setups list "tn,kl,ka" (the workflow's REGIONS variable): map those to the new cards.
 _OLD = {"tn": ["chn", "tnni", "delta", "tnc", "tnw", "tns", "ap"], "tncw": ["tnc", "tnw"],

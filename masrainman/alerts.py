@@ -194,6 +194,8 @@ RADAR_NAMES = {
     "mangalore": ("Mangaluru", "மங்களூரு"),
     "trivandrum": ("Thiruvananthapuram", "திருவனந்தபுரம்"),
     "kochi": ("Kochi", "கொச்சி"),
+    "machilipatnam": ("Machilipatnam", "மச்சிலிப்பட்டினம்"),
+    "sriharikota": ("Sriharikota", "ஸ்ரீஹரிகோட்டா"),
 }
 
 
