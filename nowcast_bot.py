@@ -505,6 +505,9 @@ PRODUCTS = {
         # pixel, extend masks/koc_maxz_static_exclude.png the same way
         # (regenerate the intersection over a fresh batch of frames).
         "static_exclude_mask": "masks/koc_maxz_static_exclude.png",
+        # Back online 2 Nov 2026 with a coloured terrain basemap: a few 1-3 px
+        # terrain pixels over the Ghats match LUT colours -- drop tiny specks.
+        "despeckle_min_px": 8,
     },
 
     # --- Chennai DWR (see calibration-status comment above RADAR_SITES) ---
@@ -3667,7 +3670,8 @@ OUTPUT_HTML.parent.mkdir(parents=True, exist_ok=True)
 # this line is the only change needed to turn them on for real here.
 # cni_ppz (Chennai Extended) switched off 12 Oct 2026: its 250-600 km ring drew ~400 strong echo px inside Karaikal's range
 # where Karaikal MAXZ showed none. Add it back here once it is validated against the short-range radars.
-POLLED_PRODUCTS = ("maxz", "kkl_maxz", "kkl_ppz", "cni_maxz", "cni_ppi", "mlr_maxz", "tvm_ppi", "mpt_maxz", "mpt_ppz", "shr_ppz")
+# koc_maxz back on 2 Nov 2026 (Kochi DWR back from maintenance; same frame layout, checked on 2 real frames).
+POLLED_PRODUCTS = ("maxz", "kkl_maxz", "kkl_ppz", "cni_maxz", "cni_ppi", "koc_maxz", "mlr_maxz", "tvm_ppi", "mpt_maxz", "mpt_ppz", "shr_ppz")
 
 # How many archived frames to keep per product. Kept small on purpose --
 # this repo is committing binary GIFs on every run, and unlike the
