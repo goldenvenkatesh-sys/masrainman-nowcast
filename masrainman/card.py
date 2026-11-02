@@ -605,7 +605,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     # sea where possible -- joined to the town by a pointer line, so the
     # radar picture itself stays visible (2 Nov 2026: the old big labels sat
     # right on top of the rain they described).
-    f_name, f_ta, f_int = font("xbold", 18), font("ta", 15), font("semi", 15)
+    f_name, f_ta, f_int = font("xbold", 16), font("ta", 13), font("semi", 13)
     rain_ii = np.pad(rain_px.astype(np.int32), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
     land = land_mask(frame)
     land_ii = None if land is None else np.pad(land.astype(np.int32), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
@@ -675,7 +675,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         line3 = SHORT_EN[lvl] + ("" if kind == "now" else f" ~{p.eta_clock or str(p.eta_min) + ' min'}")
         name_en, name_ta = (f"Near {p.en}", f"{p.ta} அருகே") if getattr(p, "near", False) else (p.en, p.ta)
         lines = [(name_en, f_name, INK), (name_ta, f_ta, T["sub"]), (line3, f_int, band_color(engine, dbz))]
-        bw, bh = max(text_w(d, s, f) for s, f, _ in lines) + 22, 66
+        bw, bh = max(text_w(d, s, f) for s, f, _ in lines) + 8, 52
         box, seg = place_callout(x, y, bw, bh)
         if box is None:
             continue
@@ -685,12 +685,13 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         ld.line(seg, fill=HALO + (230,), width=5)
         ld.line(seg, fill=INK + (255,), width=2)
         col = band_color(engine, dbz)
-        od.rounded_rectangle(box, radius=9, fill=PAPER + (215,), outline=col + (255,), width=2)
+        # no background box (it hid the rain): plain text with a thin halo
         od.ellipse([x - 5, y - 5, x + 5, y + 5], fill=col + (255,), outline=HALO + (255,), width=2)
-        cx, ty = (box[0] + box[2]) / 2, box[1] + 13
+        cx, ty = (box[0] + box[2]) / 2, box[1] + 9
         for s, f, c in lines:
-            od.text((cx, ty), s, font=f, fill=tuple(c) + (255,), anchor="mm")
-            ty += 20
+            od.text((cx, ty), s, font=f, fill=tuple(c) + (255,), anchor="mm",
+                    stroke_width=3, stroke_fill=HALO + (255,))
+            ty += 17
     panel.alpha_composite(lines_l)
     panel.alpha_composite(overlay)
     d = ImageDraw.Draw(panel)
