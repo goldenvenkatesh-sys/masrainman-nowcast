@@ -72,6 +72,7 @@ COARSEN = int(os.environ.get("CARD_BLOCK", "2"))     # 2 x 0.02 deg = ~4.4 km bl
 
 LEGEND_EN = ["Drizzle", "Light", "Moderate", "Mod+", "Heavy", "V.Heavy", "Intense", "Extreme"]
 LEGEND_TA = ["தூறல்", "லேசான", "மிதமான", "மிதம்+", "கனமழை", "மிக கனம்", "தீவிரம்", "அதி தீவிரம்"]
+MAX_CALLOUTS = int(os.environ.get("CARD_MAX_CALLOUTS", "6"))   # town callout boxes per card
 SHORT_EN = {50: "Intense", 45: "Very heavy", 40: "Heavy", 30: "Moderate", 20: "Light"}
 
 
@@ -148,6 +149,29 @@ class Frame:
     def bounds(self):
         (w_, n), (e, s) = self.lonlat(0, 0), self.lonlat(self.w, self.h)
         return s, w_, n, e
+
+
+# Land (True) / sea (False) on a 0.01 deg grid, 5-24N 68-90E -- built once
+# from the global-land-mask package; used to put town callouts over the sea.
+LANDMASK = config.ASSETS / "landmask_s5n24_w68e90_001.png"
+_LM = {}
+
+
+def land_mask(frame: Frame):
+    """Boolean (h, w) array for the map panel: True over land. None if the
+    asset is missing or the view is outside it."""
+    try:
+        if "a" not in _LM:
+            _LM["a"] = np.asarray(Image.open(LANDMASK).convert("L")) > 127
+        a = _LM["a"]
+        xs = np.array([frame.lonlat(x + .5, 0)[0] for x in range(frame.w)])
+        ys = np.array([frame.lonlat(0, y + .5)[1] for y in range(frame.h)])
+        ci = np.clip(np.round((xs - 68.0) / 0.01).astype(int), 0, a.shape[1] - 1)
+        ri = np.clip(np.round((24.0 - ys) / 0.01).astype(int), 0, a.shape[0] - 1)
+        return a[np.ix_(ri, ci)]
+    except Exception as e:
+        print(f"[card] land mask unavailable: {e}")
+        return None
 
 
 # ------------------------------------------------------------ basemap ----
@@ -520,6 +544,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     mw, mh = MAP_BOX[2] - MAP_BOX[0], MAP_BOX[3] - MAP_BOX[1]
     frame = Frame(center, view_lat_deg, mw, mh)
     panel = basemap(frame, engine).convert("RGBA")
+    base_rgb = np.asarray(panel, dtype=np.int16)[..., :3].copy()
 
     if CARD_STYLE == "blocks":
         a_now = smooth_rain(despeckle(coarsen(obs, COARSEN)))
@@ -530,6 +555,8 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         full = obs.astype(float)
         full[full == 255] = 0
         draw_smooth_rain(panel, smooth_rain(despeckle(full)), g, frame, engine)
+    # where rain was painted -- town callouts are kept off it (see place_callout)
+    rain_px = np.abs(np.asarray(panel, dtype=np.int16)[..., :3] - base_rgb).max(axis=2) > 18
     d = ImageDraw.Draw(panel)
     draw_boundaries(d, frame)
     if proj is not None:
@@ -574,11 +601,72 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         return 0 < r[0] and r[2] < mw and 0 < r[1] and r[3] < mh and all(
             r[2] + m < o[0] or r[0] - m > o[2] or r[3] + m < o[1] or r[1] - m > o[3] for o in occupied)
 
-    f_name, f_ta, f_int = font("xbold", 27), font("ta", 21), font("xbold", 23)
+    # Affected towns get a small callout box placed OFF the rain -- over the
+    # sea where possible -- joined to the town by a pointer line, so the
+    # radar picture itself stays visible (2 Nov 2026: the old big labels sat
+    # right on top of the rain they described).
+    f_name, f_ta, f_int = font("xbold", 18), font("ta", 15), font("semi", 15)
+    rain_ii = np.pad(rain_px.astype(np.int32), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+    land = land_mask(frame)
+    land_ii = None if land is None else np.pad(land.astype(np.int32), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+    dots = [frame.px(p.lon, p.lat) for p in list(nc.raining) + list(nc.coming)]
+
+    def frac(ii, b):
+        x0, y0, x1, y1 = (int(max(0, b[0])), int(max(0, b[1])), int(min(mw, b[2])), int(min(mh, b[3])))
+        a = max(1, (x1 - x0) * (y1 - y0))
+        return (ii[y1, x1] - ii[y0, x1] - ii[y1, x0] + ii[y0, x0]) / a
+
+    pointers = []                                   # (x0, y0, x1, y1) of pointers already placed
+
+    def _cross(a, b):
+        (x1, y1, x2, y2), (x3, y3, x4, y4) = a, b
+        def o(ax, ay, bx, by, cx, cy):
+            return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        return (o(x1, y1, x2, y2, x3, y3) * o(x1, y1, x2, y2, x4, y4) < 0 and
+                o(x3, y3, x4, y4, x1, y1) * o(x3, y3, x4, y4, x2, y2) < 0)
+
+    def _hits_box(seg, m=4):
+        x0, y0, x1, y1 = seg
+        n = max(2, int(math.hypot(x1 - x0, y1 - y0) / 6))
+        for i in range(1, n):
+            px_, py_ = x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n
+            if any(o[0] - m < px_ < o[2] + m and o[1] - m < py_ < o[3] + m for o in occupied):
+                return True
+        return False
+
+    def _seg_in_box(q, b, m=4):
+        n = max(2, int(math.hypot(q[2] - q[0], q[3] - q[1]) / 6))
+        return any(b[0] - m < q[0] + (q[2] - q[0]) * i / n < b[2] + m and
+                   b[1] - m < q[1] + (q[3] - q[1]) * i / n < b[3] + m for i in range(1, n))
+
+    def place_callout(x, y, bw, bh):
+        best = None
+        for r in range(60, 340, 25):
+            for ang in range(0, 360, 15):
+                cx = x + r * math.cos(math.radians(ang))
+                cy = y - r * math.sin(math.radians(ang))
+                b = (cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2)
+                if not free(b, 8) or any(b[0] - 6 < dx < b[2] + 6 and b[1] - 6 < dy < b[3] + 6 for dx, dy in dots):
+                    continue
+                seg = (min(max(x, b[0]), b[2]), min(max(y, b[1]), b[3]), x, y)
+                if _hits_box(seg) or any(_seg_in_box(q, b) for q in pointers):
+                    continue
+                cost = 6.0 * frac(rain_ii, b) + r / 400.0 + 3.0 * sum(_cross(seg, q) for q in pointers)
+                if land_ii is not None:
+                    cost += 1.5 * frac(land_ii, b)
+                if best is None or cost < best[0]:
+                    best = (cost, b, seg)
+        return (best[1], best[2]) if best else (None, None)
+
+    lines_l = Image.new("RGBA", panel.size, (0, 0, 0, 0))     # pointers under the boxes
+    overlay = Image.new("RGBA", panel.size, (0, 0, 0, 0))
+    ld, od = ImageDraw.Draw(lines_l), ImageDraw.Draw(overlay)
     affected = [(p, "now") for p in nc.raining] + [(p, "soon") for p in nc.coming]
     affected.sort(key=lambda t: (t[0].priority, -(t[0].now_dbz if t[1] == "now" else t[0].soon_dbz)))
     shown = set()
     for p, kind in affected:
+        if len(shown) >= MAX_CALLOUTS:
+            break
         x, y = frame.px(p.lon, p.lat)
         if not (0 < x < mw and 0 < y < mh):
             continue
@@ -586,35 +674,38 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         lvl = max([k for k in SHORT_EN if dbz >= k] + [20])
         line3 = SHORT_EN[lvl] + ("" if kind == "now" else f" ~{p.eta_clock or str(p.eta_min) + ' min'}")
         name_en, name_ta = (f"Near {p.en}", f"{p.ta} அருகே") if getattr(p, "near", False) else (p.en, p.ta)
-        lines = [(name_en, f_name, INK), (name_ta, f_ta, T["sub"]), (line3, f_int, INK)]
-        bw, bh = max(text_w(d, s, f) for s, f, _ in lines) + 10, 88
-        box = None
-        for cy in (y + 6 + bh / 2, y - 6 - bh / 2):           # below the dot, else above
-            cand = (x - bw / 2, cy - bh / 2, x + bw / 2, cy + bh / 2)
-            if free(cand):
-                box = cand
-                break
+        lines = [(name_en, f_name, INK), (name_ta, f_ta, T["sub"]), (line3, f_int, band_color(engine, dbz))]
+        bw, bh = max(text_w(d, s, f) for s, f, _ in lines) + 22, 66
+        box, seg = place_callout(x, y, bw, bh)
         if box is None:
             continue
         occupied.append(box)
+        pointers.append(seg)
         shown.add(p.en)
-        d.ellipse([x - 5, y - 5, x + 5, y + 5], fill=INK, outline=HALO, width=2)
-        ty = box[1] + 15
-        for s, f, col in lines:
-            halo_text(d, (x, ty), s, f, fill=col, stroke=5)
-            ty += 29
-    f_small = font("semi", 19)
+        ld.line(seg, fill=HALO + (230,), width=5)
+        ld.line(seg, fill=INK + (255,), width=2)
+        col = band_color(engine, dbz)
+        od.rounded_rectangle(box, radius=9, fill=PAPER + (215,), outline=col + (255,), width=2)
+        od.ellipse([x - 5, y - 5, x + 5, y + 5], fill=col + (255,), outline=HALO + (255,), width=2)
+        cx, ty = (box[0] + box[2]) / 2, box[1] + 13
+        for s, f, c in lines:
+            od.text((cx, ty), s, font=f, fill=tuple(c) + (255,), anchor="mm")
+            ty += 20
+    panel.alpha_composite(lines_l)
+    panel.alpha_composite(overlay)
+    d = ImageDraw.Draw(panel)
+    f_small = font("semi", 16)
     for en, ta, lat, lon, pri, st in sorted(PLACES, key=lambda t: t[4]):
         if en in shown:
             continue
         x, y = frame.px(lon, lat)
         tw_ = text_w(d, en, f_small)
-        box = (x - tw_ / 2 - 4, y - 30, x + tw_ / 2 + 4, y + 4)
+        box = (x - tw_ / 2 - 4, y - 26, x + tw_ / 2 + 4, y + 4)
         if not free(box, 4):
             continue
         occupied.append(box)
         d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=INK)
-        halo_text(d, (x, y - 14), en, f_small, fill=T["small"], stroke=4)
+        halo_text(d, (x, y - 12), en, f_small, fill=T["small"], stroke=3)
 
     # ------------------------------------------------------- full card ----
     card = Image.new("RGBA", (W, H), PAPER + (255,))
