@@ -508,6 +508,21 @@ PRODUCTS = {
         # Back online 2 Nov 2026 with a coloured terrain basemap: a few 1-3 px
         # terrain pixels over the Ghats match LUT colours -- drop tiny specks.
         "despeckle_min_px": 8,
+        # 2 Nov 2026: echo is anti-aliased/blended over the new terrain map,
+        # so ~half of the real echo pixels were 5-40 RGB units off the colour
+        # bar and got dropped (weak coastal showers vanished). Fixed swatch
+        # colours (measured on the 10:46 UTC frame), a looser colour match for
+        # saturated pixels, and gridline strips refilled instead of blanked.
+        "colorbar_lut": [
+            ((12, 9, 81), 20.0), ((9, 8, 111), 20.0), ((3, 3, 153), 21.25), ((1, 3, 165), 23.75),
+            ((2, 26, 228), 26.25), ((2, 121, 252), 28.75), ((55, 183, 252), 32.5),
+            ((142, 236, 247), 36.25), ((251, 253, 229), 40.0), ((254, 254, 3), 43.75),
+            ((253, 147, 7), 47.5), ((251, 2, 2), 51.25), ((172, 17, 13), 53.75),
+            ((125, 8, 8), 56.25), ((83, 1, 2), 58.75),
+        ],
+        "dist_threshold": 45,
+        "loose_min_sat": 70,
+        "bridge_label_boxes": True,
     },
 
     # --- Chennai DWR (see calibration-status comment above RADAR_SITES) ---
@@ -1596,6 +1611,11 @@ def build_lut_from_colorbar(img: Image.Image, product: str) -> list[tuple[tuple[
         top_val, bot_val = cfg["value_at_top"], cfg["value_at_bottom"]
         values = top_val + (bot_val - top_val) * (np.arange(h) / (h - 1))
 
+    if cfg.get("colorbar_lut"):
+        # fixed, hand-measured swatch colours (Kochi: IMD's emblem watermark is
+        # printed over the top and bottom of its colour bar, so sampling the
+        # bar picks up the logo's colours too)
+        return [(tuple(c), float(v)) for c, v in cfg["colorbar_lut"]]
     bands = cfg.get("colorbar_bands")
     if cfg.get("colorbar_all_columns"):
         # Machilipatnam / Sriharikota (2 Nov 2026): the colour bar is DITHERED --
@@ -1986,7 +2006,20 @@ def decode_reflectivity(img: Image.Image, product: str, lut: list) -> np.ndarray
     dist, idx = tree.query(flat, k=1)   # vectorized — one call for the whole image
 
     dbz_flat = values[idx]
-    dbz_flat[dist > DIST_THRESHOLD] = np.nan
+    # Per-product override (koc_maxz, 2 Nov 2026): Kochi's echo is drawn
+    # anti-aliased / semi-transparent over a coloured terrain map, so most
+    # echo pixels are blends that sit 5-40 RGB units from the nearest colour-
+    # bar colour and were thrown away with the global threshold of 2.
+    loose = cfg.get("dist_threshold")
+    if loose:
+        # accept a near-exact match always; a looser match only for clearly
+        # coloured pixels, so grey sea, white gridlines and the beige/green
+        # terrain never count as echo
+        sat = flat.max(axis=1) - flat.min(axis=1)
+        ok = (dist <= DIST_THRESHOLD) | ((dist <= loose) & (sat >= cfg.get("loose_min_sat", 70)))
+        dbz_flat[~ok] = np.nan
+    else:
+        dbz_flat[dist > DIST_THRESHOLD] = np.nan
 
     exclude_colors = cfg.get("exclude_colors")
     if exclude_colors:
@@ -2021,6 +2054,19 @@ def decode_reflectivity(img: Image.Image, product: str, lut: list) -> np.ndarray
         x0, x1 = max(bl - l, 0), min(br - l, w)
         if y1 > y0 and x1 > x0:
             dbz[y0:y1, x0:x1] = np.nan
+            if cfg.get("bridge_label_boxes"):
+                # Kochi's boxes are 11 px gridline STRIPS: blanking them cut
+                # every storm crossing a gridline in two. Refill a strip pixel
+                # from the echo just outside the strip on both sides (the
+                # weaker of the two), only where both sides have echo.
+                if (y1 - y0) < (x1 - x0):            # horizontal strip
+                    a = dbz[max(y0 - 2, 0), x0:x1]; b_ = dbz[min(y1 + 1, h - 1), x0:x1]
+                    fill = np.where(np.isfinite(a) & np.isfinite(b_), np.fmin(a, b_), np.nan)
+                    dbz[y0:y1, x0:x1] = fill[None, :]
+                else:                                 # vertical strip
+                    a = dbz[y0:y1, max(x0 - 2, 0)]; b_ = dbz[y0:y1, min(x1 + 1, w - 1)]
+                    fill = np.where(np.isfinite(a) & np.isfinite(b_), np.fmin(a, b_), np.nan)
+                    dbz[y0:y1, x0:x1] = fill[:, None]
 
     static_mask = get_static_exclude_mask(product)
     if static_mask is not None:
