@@ -17,7 +17,7 @@ from masrainman.social import process_pending_updates, publish_cycle
 def build_items(engine):
     from masrainman.alerts import BOT_JSON, build_caption, build_nowcast, for_region
     from masrainman.card import MAP_BOX, render_card
-    from masrainman.regions import ENABLED, HASHTAGS, REGION_RADARS, REGIONS, VIEW_LAT_DEG, best_window
+    from masrainman.regions import ENABLED, HASHTAGS, REGION_RADARS, REGIONS, VIEW_LAT_DEG, best_window, fit_view, in_view
 
     nc = build_nowcast()
     doc = json.loads(BOT_JSON.read_text()) if BOT_JSON.exists() else {}
@@ -41,15 +41,26 @@ def build_items(engine):
             continue
         towns = [(p.lat, p.lon, p.now_dbz) for p in rnc.raining] + [(p.lat, p.lon, p.soon_dbz) for p in rnc.coming]
         center, score, peak = best_window(arr, g, obs_i, proj_i, bbox, VIEW_LAT_DEG, aspect, towns)
+        # Zoom out just enough that every town the caption names is on the card;
+        # anything still outside (very spread-out rain) is left out of the caption.
+        center, view = fit_view(center, VIEW_LAT_DEG, aspect, towns)
+        from dataclasses import replace as _replace
+        seen = lambda p: in_view(center, view, aspect, [(p.lat, p.lon)])
+        dropped = [p.en for p in rnc.raining + rnc.coming if not seen(p)]
+        rnc = _replace(rnc, raining=[p for p in rnc.raining if seen(p)], coming=[p for p in rnc.coming if seen(p)])
+        if dropped:
+            print(f"[cycle] {key}: left off-card towns out of the caption: {', '.join(dropped)}")
+        if not (rnc.raining or rnc.coming):
+            continue
         path = config.OUTPUT_DIR / f"masrainman_{key}.jpg"
         try:
-            render_card(rnc, engine, center, VIEW_LAT_DEG, en, ta, path)
+            render_card(rnc, engine, center, view, en, ta, path)
         except Exception:
             traceback.print_exc()
             continue
         caption = build_caption(rnc, limit=940)        # room left for the admin prompt line
         (config.OUTPUT_DIR / f"caption_{key}.txt").write_text(caption, encoding="utf-8")
-        print(f"[cycle] {key}: card -> {path} (view centre {center[0]:.2f},{center[1]:.2f}, peak {peak:.0f} dBZ)")
+        print(f"[cycle] {key}: card -> {path} (view centre {center[0]:.2f},{center[1]:.2f}, {view:.1f} deg tall, peak {peak:.0f} dBZ)")
         print(caption)
         items.append((key, path, caption))
         doc["peak_dbz"] = max(float(doc.get("peak_dbz") or 0), float(peak or 0))   # for WhatsApp peak-mode
