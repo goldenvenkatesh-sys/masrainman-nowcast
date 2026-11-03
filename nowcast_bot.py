@@ -196,6 +196,18 @@ RADAR_SITES = {
         "band": "S",               # UNVERIFIED -- not stated on the frame
     },
 
+    # --- Ninth radar: IMD's Hyderabad DWR (Begumpet; Metstar S-band, Sigmet
+    # IRIS "Max with panels" layout, the same as Karaikal's caz_kkl). Added
+    # 3 Nov 2026 for Telangana. Site per NCMRWF's radar list (17.44N 78.47E);
+    # the frame has no lat/lon gridlines, so the image side is calibrated
+    # from its six "200 km" ring labels instead (see PRODUCTS["hyd_maxz"]).
+    "hyderabad": {
+        "site_lat": 17.44,
+        "site_lon": 78.478,       # 78.47 published; 78.478 best fits IMD's own printed state borders (mean 0.4 px)
+        "site_elev_m": 530.0,      # UNVERIFIED -- Begumpet airport elevation
+        "band": "S",
+    },
+
     # --- Eighth radar: ISRO's Sriharikota (SHAR) DWR, long-range PPZ only.
     # Coordinates and height are printed on the frame ("13.6645N, 80.2274E, 29m").
     "sriharikota": {
@@ -214,6 +226,7 @@ PRODUCT_RADAR = {
     "mlr_maxz": "mangalore",
     "tvm_ppi": "trivandrum",
     "mpt_maxz": "machilipatnam", "mpt_ppz": "machilipatnam",
+    "hyd_maxz": "hyderabad",
     "shr_ppz": "sriharikota",
 }
 
@@ -962,6 +975,36 @@ PRODUCTS = {
         "erode_thin_residual": True,
     },
 
+    # --- Hyderabad DWR (see RADAR_SITES["hyderabad"]), added 3 Nov 2026.
+    # Same 880x720 IRIS "Max with panels" layout and colour bar as kkl_maxz:
+    # N-S strip on top, E-W strip on the right, plan view bottom-left
+    # (x 0-597, y 123-720, bounded by its own dark border lines), drawn over a
+    # shaded terrain basemap. Six "200 km" ring labels (tan boxes centred at
+    # (298.5,181) (91.5,301) (505.5,301) (91.5,540) (505.5,540) (298.5,660))
+    # give the site at (298.5, 420.5) and a 239.3 px radius = 1.1966 px/km;
+    # the 250 km disc then spans exactly x -0.5..597.5, the panel's width.
+    "hyd_maxz": {
+        "url": "https://mausam.imd.gov.in/Radar/caz_hyd.gif",
+        "role": "aloft_early_warning",
+        "range_km": 250.0,
+        "elevation_deg": None,
+        "image_size": (880, 720),
+        "site_px": (298.5, 420.5),
+        "km_per_px": 1.1966,        # PIXELS per km (239.3 px = 200 km)
+        "colorbar_bbox": (780, 375, 800, 615),
+        "value_at_top": 60.0,       # same 15-band 20-60 dBZ bar as kkl_maxz
+        "value_at_bottom": 20.0,
+        "timestamp_bbox": (715, 205, 880, 266),
+        "elevation_bbox": None,
+        "plot_bbox": (0, 124, 597, 720),
+        "cell_dbz_threshold": 35,
+        "despeckle_min_px": 8,
+        "label_exclude_boxes": [
+            (286, 173, 312, 189), (79, 293, 105, 309), (493, 293, 519, 309),
+            (79, 532, 105, 548), (493, 532, 519, 548), (286, 652, 312, 668),
+        ],
+    },
+
     # --- Machilipatnam DWR (see RADAR_SITES["machilipatnam"]), added 2 Nov 2026.
     # Same SELEX "Rainbow" layout as Chennai (cross-section strips top/right,
     # plan view bottom-left with lat/lon gridlines) but drawn over a
@@ -1158,7 +1201,7 @@ STALE_OBS_MINUTES = 60
 # not product, since a cell's product can be either of Karaikal's two.
 # Radars not listed here (niot, kochi) are unrestricted — this is currently
 # a Karaikal-only concern.
-ARROW_MAX_RANGE_KM = {"karaikal": 250.0, "chennai": 250.0, "machilipatnam": 250.0}
+ARROW_MAX_RANGE_KM = {"karaikal": 250.0, "chennai": 250.0, "machilipatnam": 250.0, "hyderabad": 250.0}
 
 # === CELL 6 (georeferencing) ===
 def site_for(product: str) -> dict:
@@ -1439,7 +1482,10 @@ def extract_observation_time(img: Image.Image, product: str) -> datetime | None:
     function's docstring for why), which is the actual fix; the loosened
     generic-path sanity check further down is a second line of defense
     for whatever other product hits a similar single-digit miss."""
-    if PRODUCT_RADAR.get(product) == "karaikal":
+    # Hyderabad's IRIS frame prints its time in the same bold font at the same
+    # spot as Karaikal's (verified on 12 frames, 3 Nov 2026), so it shares
+    # this template path.
+    if PRODUCT_RADAR.get(product) in ("karaikal", "hyderabad"):
         hms = extract_kkl_time_via_templates(img)
         if hms is None:
             # REPORTED AGAIN, this time for kkl_ppz specifically (production,
@@ -2594,12 +2640,14 @@ PRODUCT_STYLE = {
     "tvm_ppi": {"color": "#9467bd", "label": "Trivandrum DWR PPI (2 deg)"},
     "mpt_maxz": {"color": "#ff7f0e", "label": "Machilipatnam DWR MAXZ - aloft / building"},
     "mpt_ppz": {"color": "#aec7e8", "label": "Machilipatnam Extended Radar"},
+    "hyd_maxz": {"color": "#d62728", "label": "Hyderabad DWR MAXZ - aloft / building"},
     "shr_ppz": {"color": "#c5b0d5", "label": "Sriharikota Long Range Radar"},
 }
 
 RADAR_MARKER_LABEL = {"niot": "NIOT X-DWR Chennai", "karaikal": "Karaikal DWR",
                        "kochi": "Kochi DWR", "trivandrum": "Trivandrum DWR",
-                       "machilipatnam": "Machilipatnam DWR", "sriharikota": "Sriharikota (SHAR) DWR"}
+                       "machilipatnam": "Machilipatnam DWR", "sriharikota": "Sriharikota (SHAR) DWR",
+                       "hyderabad": "Hyderabad DWR"}
 
 # CARTO now requires an API key even for the free Voyager basemap tiles.
 # NOTE: this key travels in the tile URL itself, so it's visible to anyone
@@ -3717,7 +3765,7 @@ OUTPUT_HTML.parent.mkdir(parents=True, exist_ok=True)
 # cni_ppz (Chennai Extended) switched off 12 Oct 2026: its 250-600 km ring drew ~400 strong echo px inside Karaikal's range
 # where Karaikal MAXZ showed none. Add it back here once it is validated against the short-range radars.
 # koc_maxz back on 2 Nov 2026 (Kochi DWR back from maintenance; same frame layout, checked on 2 real frames).
-POLLED_PRODUCTS = ("maxz", "kkl_maxz", "kkl_ppz", "cni_maxz", "cni_ppi", "koc_maxz", "mlr_maxz", "tvm_ppi", "mpt_maxz", "mpt_ppz", "shr_ppz")
+POLLED_PRODUCTS = ("maxz", "kkl_maxz", "kkl_ppz", "cni_maxz", "cni_ppi", "koc_maxz", "mlr_maxz", "tvm_ppi", "mpt_maxz", "mpt_ppz", "shr_ppz", "hyd_maxz")
 
 # How many archived frames to keep per product. Kept small on purpose --
 # this repo is committing binary GIFs on every run, and unlike the

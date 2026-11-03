@@ -196,6 +196,7 @@ RADAR_NAMES = {
     "kochi": ("Kochi", "கொச்சி"),
     "machilipatnam": ("Machilipatnam", "மச்சிலிப்பட்டினம்"),
     "sriharikota": ("Sriharikota", "ஸ்ரீஹரிகோட்டா"),
+    "hyderabad": ("Hyderabad", "ஹைதராபாத்"),
 }
 
 

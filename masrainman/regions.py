@@ -16,6 +16,11 @@ import numpy as np
 # One function decides each town's card, so every TN/PY town lands on exactly
 # one card. Lines follow district groupings by town position, not exact
 # district borders.
+def _near_hyd(lat: float, lon: float) -> bool:
+    """Hyderabad metro + suburbs: within ~40 km of the city centre."""
+    return math.hypot(lat - 17.385, (lon - 78.487) * math.cos(math.radians(17.4))) < 0.36
+
+
 def tn_zone(lat: float, lon: float) -> str:
     if lat >= 12.45 and lon >= 79.65:
         return "chn"                       # Chennai, Tiruvallur, Chengalpattu, Kanchipuram
@@ -50,6 +55,10 @@ REGIONS = [
     ("kac", "Coastal Karnataka", "கடலோர கர்நாடகா", (12.3, 73.8, 15.0, 75.6), {"KA"}, lambda la, lo: lo < 75.45),
     ("blr", "Bengaluru", "பெங்களூரு", (12.4, 76.9, 13.7, 78.3), {"KA"}, lambda la, lo: lo >= 76.95),
     ("ap", "South Andhra Pradesh", "தென் ஆந்திரா", (13.15, 77.8, 16.7, 81.4), {"AP"}, None),
+    # Hyderabad DWR (added 3 Nov 2026): the city and its suburbs get their own
+    # card, the rest of Telangana another -- same split as Chennai vs the rest.
+    ("hyd", "Hyderabad", "ஹைதராபாத்", (16.6, 77.7, 18.2, 79.3), {"TG"}, lambda la, lo: _near_hyd(la, lo)),
+    ("tg", "Telangana", "தெலங்கானா", (15.8, 77.1, 19.95, 81.4), {"TG"}, lambda la, lo: not _near_hyd(la, lo)),
 ]
 HASHTAGS = {"chn": "#ChennaiRains #ChennaiWeather",
             "tnni": "#TamilNaduRains #VelloreRains #TiruvannamalaiRains #VillupuramRains",
@@ -61,17 +70,20 @@ HASHTAGS = {"chn": "#ChennaiRains #ChennaiWeather",
             "kln": "#KeralaRains #KozhikodeRains #KannurRains",
             "kac": "#KarnatakaRains #MangaluruRains #UdupiRains",
             "blr": "#BengaluruRains #BangaloreWeather",
-            "ap": "#AndhraPradeshRains #TirupatiRains #NelloreRains #OngoleRains"}
+            "ap": "#AndhraPradeshRains #TirupatiRains #NelloreRains #OngoleRains",
+            "hyd": "#HyderabadRains #HyderabadWeather #TelanganaRains",
+            "tg": "#TelanganaRains #WarangalRains #KarimnagarRains #KhammamRains"}
 # Which IMD radars actually cover each region -- used only to say in the
 # caption when one of them has stopped updating (alerts.radar_down_line).
 REGION_RADARS = {"chn": {"chennai", "niot"}, "tnni": {"chennai"},
                  "delta": {"karaikal", "chennai"}, "tnc": {"karaikal"},
                  "tnw": {"karaikal"}, "tns": {"karaikal", "trivandrum"},
                  "kls": {"trivandrum", "kochi"}, "kln": {"kochi", "mangalore"},
-                 "kac": {"mangalore"}, "blr": {"chennai"}, "ap": {"chennai", "machilipatnam"}}
+                 "kac": {"mangalore"}, "blr": {"chennai"}, "ap": {"chennai", "machilipatnam"},
+                 "hyd": {"hyderabad"}, "tg": {"hyderabad"}}
 ALL_KEYS = [r[0] for r in REGIONS]
 # Older setups list "tn,kl,ka" (the workflow's REGIONS variable): map those to the new cards.
-_OLD = {"tn": ["chn", "tnni", "delta", "tnc", "tnw", "tns", "ap"], "tncw": ["tnc", "tnw"],
+_OLD = {"tn": ["chn", "tnni", "delta", "tnc", "tnw", "tns", "ap", "hyd", "tg"], "tncw": ["tnc", "tnw"],
         "kl": ["kls", "kln"], "ka": ["kac", "blr"]}
 ENABLED = []
 for _r in [r.strip() for r in os.environ.get("REGIONS", ",".join(ALL_KEYS)).split(",") if r.strip()]:

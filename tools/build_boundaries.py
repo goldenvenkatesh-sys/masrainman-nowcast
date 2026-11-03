@@ -2,7 +2,7 @@
 nowcast map) from per-state district GeoJSON files, e.g. those in
 https://github.com/udit-001/india-maps-data/tree/main/geojson/states
 
-  python tools/build_boundaries.py tamil-nadu.geojson puducherry.geojson kerala.geojson karnataka.geojson andhra-pradesh.geojson
+  python tools/build_boundaries.py tamil-nadu.geojson puducherry.geojson kerala.geojson karnataka.geojson andhra-pradesh.geojson telangana.geojson
 
 Lines shared by two districts of one state are drawn thin (district
 lines); edges that belong to only one district polygon are the state
@@ -13,7 +13,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-BBOX = (6.0, 72.0, 16.5, 82.5)      # south, west, north, east
+BBOX = (6.0, 72.0, 20.0, 82.5)      # south, west, north, east (20N: Telangana, added 3 Nov 2026)
 TOL = 0.004                         # simplification tolerance, degrees (~400 m)
 
 
