@@ -1,0 +1,114 @@
+<html>
+
+     <head>
+
+       <title>Hyderanad Weather Radar</title>
+ 	<meta http-equiv="refresh" content="300">
+    <script language="JavaScript">
+  
+    if (document.images)
+ 
+    {
+      demo1 = new Image(); 
+      demo1.src = "MAX250_hyd_10.gif"
+      demo2 = new Image(); 
+      demo2.src = "MAX250_hyd_9.gif";
+      demo3 = new Image();
+      demo3.src = "MAX250_hyd_8.gif";
+      demo4 = new Image();
+      demo4.src = "MAX250_hyd_7.gif";
+      demo5 = new Image();
+      demo5.src = "MAX250_hyd_6.gif";
+      demo6 = new Image();
+      demo6.src = "MAX250_hyd_5.gif";
+      demo7 = new Image();
+      demo7.src = "MAX250_hyd_4.gif";
+      demo8 = new Image();
+      demo8.src = "MAX250_hyd_3.gif";
+      demo9 = new Image();
+      demo9.src = "MAX250_hyd_2.gif";
+      demo10 = new Image();
+      demo10.src = "MAX250_hyd_1.gif";
+      demo11 = new Image();
+      demo11.src = "MAX250_hyd.gif";
+      demo12 = new Image();
+      demo12.src = "start2.png";
+      demo13 = new Image();
+      demo13.src = "start3.png";
+      demo14 = new Image();
+      demo14.src = "start1.png";
+      demo15 = new Image();
+      demo15.src = "start2.png";
+      demo16 = new Image();
+      demo16.src = "start3.png";
+      demo17 = new Image();
+      demo17.src = "start1.png";
+      demo18 = new Image();
+      demo18.src = "start2.png";
+      demo19 = new Image();
+      demo19.src = "start3.png";
+
+        	      
+	}
+
+
+    function timeimgs(numb)
+    {
+      thetimer = setTimeout("imgturn('" +numb+ "')", 600);
+    }
+
+    function imgturn(numb)
+ 
+    {
+ 
+      if (document.images)
+ 
+      {
+ 
+      
+        if (numb == "19")
+ 
+        {
+ 
+          document["demo"].src = eval("demo19.src");
+ 
+          timeimgs('1');
+ 
+        }
+ 
+        else
+ 
+        {
+ 
+          document["demo"].src = eval("demo" + numb + ".src");
+ 
+          timeimgs(numb = ++numb);
+ 
+        }
+ 
+      }
+ 
+    }
+ 
+    </script>
+ 
+  </head>
+ 
+  <body bgcolor="sky blue" onload="timeimgs('1');">
+ 
+ 
+  </head>
+ 
+  <body bgcolor="olive" onload="timeimgs('1');">
+
+
+<p align="center"><b><font color="red" size="4">HYDERABAD WEATHER RADAR : MAX REFLECTIVITY ANIMATION 250Km</font></b></p>
+<p align="center"><b><font color="#0033cc" face="Arial" size="2">(This Animation Updates every 10 minutes)</font></b> 
+       <CENTER><img src="start1.png" name="demo" border= "2px" width="650" height="520" alt="demo"></CENTER>
+ 
+  </body>
+ 
+</html>
+  
+
+</html>
