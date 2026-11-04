@@ -601,10 +601,8 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         return 0 < r[0] and r[2] < mw and 0 < r[1] and r[3] < mh and all(
             r[2] + m < o[0] or r[0] - m > o[2] or r[3] + m < o[1] or r[1] - m > o[3] for o in occupied)
 
-    # Affected towns get a small callout box placed OFF the rain -- over the
-    # sea where possible -- joined to the town by a pointer line, so the
-    # radar picture itself stays visible (2 Nov 2026: the old big labels sat
-    # right on top of the rain they described).
+    # Affected towns get their label right beside the town dot -- no pointer
+    # lines (4 Nov 2026) -- choosing the side that covers the least rain.
     f_name, f_ta, f_int = font("xbold", 16), font("ta", 13), font("semi", 13)
     rain_ii = np.pad(rain_px.astype(np.int32), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
     land = land_mask(frame)
@@ -640,23 +638,35 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
                    b[1] - m < q[1] + (q[3] - q[1]) * i / n < b[3] + m for i in range(1, n))
 
     def place_callout(x, y, bw, bh):
+        # 4 Nov 2026: no pointer lines -- the label sits right beside its own
+        # dot (right / left / above / below / diagonals), nudged slightly
+        # further out only if the first ring of spots is taken.
         best = None
-        for r in range(60, 340, 25):
-            for ang in range(0, 360, 15):
-                cx = x + r * math.cos(math.radians(ang))
-                cy = y - r * math.sin(math.radians(ang))
-                b = (cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2)
-                if not free(b, 8) or any(b[0] - 6 < dx < b[2] + 6 and b[1] - 6 < dy < b[3] + 6 for dx, dy in dots):
+        g = 9                                            # gap between dot and text
+        for extra in (0, 14, 28):
+            spots = [
+                (x + g + extra, y - bh / 2),             # right
+                (x - g - extra - bw, y - bh / 2),        # left
+                (x - bw / 2, y - g - extra - bh),        # above
+                (x - bw / 2, y + g + extra),             # below
+                (x + g + extra, y - g - extra - bh),     # upper-right
+                (x - g - extra - bw, y - g - extra - bh),  # upper-left
+                (x + g + extra, y + g + extra),          # lower-right
+                (x - g - extra - bw, y + g + extra),     # lower-left
+            ]
+            for i, (bx, by) in enumerate(spots):
+                b = (bx, by, bx + bw, by + bh)
+                if not free(b, 4) or any(b[0] - 4 < dx < b[2] + 4 and b[1] - 4 < dy < b[3] + 4
+                                         for dx, dy in dots if (dx, dy) != (x, y)):
                     continue
-                seg = (min(max(x, b[0]), b[2]), min(max(y, b[1]), b[3]), x, y)
-                if _hits_box(seg) or any(_seg_in_box(q, b) for q in pointers):
-                    continue
-                cost = 6.0 * frac(rain_ii, b) + r / 400.0 + 3.0 * sum(_cross(seg, q) for q in pointers)
+                cost = 4.0 * frac(rain_ii, b) + extra / 30.0 + i * 0.05
                 if land_ii is not None:
-                    cost += 1.5 * frac(land_ii, b)
+                    cost += 0.5 * frac(land_ii, b)
                 if best is None or cost < best[0]:
-                    best = (cost, b, seg)
-        return (best[1], best[2]) if best else (None, None)
+                    best = (cost, b)
+            if best is not None and best[0] < 1.0:
+                break
+        return (best[1], None) if best else (None, None)
 
     lines_l = Image.new("RGBA", panel.size, (0, 0, 0, 0))     # pointers under the boxes
     overlay = Image.new("RGBA", panel.size, (0, 0, 0, 0))
@@ -680,10 +690,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         if box is None:
             continue
         occupied.append(box)
-        pointers.append(seg)
         shown.add(p.en)
-        ld.line(seg, fill=HALO + (230,), width=5)
-        ld.line(seg, fill=INK + (255,), width=2)
         col = band_color(engine, dbz)
         # no background box (it hid the rain): plain text with a thin halo
         od.ellipse([x - 5, y - 5, x + 5, y + 5], fill=col + (255,), outline=HALO + (255,), width=2)
