@@ -79,7 +79,7 @@ REGION_RADARS = {"chn": {"chennai", "niot"}, "tnni": {"chennai"},
                  "delta": {"karaikal", "chennai"}, "tnc": {"karaikal"},
                  "tnw": {"karaikal"}, "tns": {"karaikal", "trivandrum"},
                  "kls": {"trivandrum", "kochi"}, "kln": {"kochi", "mangalore"},
-                 "kac": {"mangalore"}, "blr": {"chennai"}, "ap": {"chennai", "machilipatnam"},
+                 "kac": {"mangalore"}, "blr": {"karaikal", "sriharikota"}, "ap": {"chennai", "machilipatnam"},
                  "hyd": {"hyderabad"}, "tg": {"hyderabad"}}
 ALL_KEYS = [r[0] for r in REGIONS]
 # Older setups list "tn,kl,ka" (the workflow's REGIONS variable): map those to the new cards.
