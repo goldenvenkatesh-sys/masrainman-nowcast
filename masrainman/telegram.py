@@ -91,8 +91,13 @@ def send_photo(chat_id, photo: bytes | str, caption: str = "", reply_markup: dic
 
 
 def send_album(chat_id, photos: list[tuple[bytes, str]]) -> list[dict]:
-    """One album (2-10 photos, each with its own caption). A single photo is sent normally."""
-    photos = photos[:10]
+    """Albums of up to 10 photos each (Telegram's limit), each photo with its own caption.
+    More than 10 cards go out as a second album instead of being cut off; a lone photo is sent normally."""
+    if len(photos) > 10:
+        out = []
+        for i in range(0, len(photos), 10):
+            out += send_album(chat_id, photos[i:i + 10])
+        return out
     if len(photos) == 1:
         return [send_photo(chat_id, photos[0][0], photos[0][1])]
     media, files = [], {}
