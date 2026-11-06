@@ -34,11 +34,11 @@ BOUNDARIES = config.ASSETS / "boundaries.json"
 WHITE = (255, 255, 255)
 
 # ---------------------------------------------------------------- theme ----
-# CARD_THEME=night (default since 1 Nov 2026, one-day trial): dark navy map
+# CARD_THEME=night (1-6 Nov 2026 default): dark navy map
 # with glowing rain colours -- MasRainman's own look, not the white plots
 # other pages use. CARD_THEME=classic brings back the original white card
 # and neon scale exactly as before (set the repo variable to revert).
-THEME = (os.environ.get("CARD_THEME") or "night").strip().lower()
+THEME = (os.environ.get("CARD_THEME") or "day").strip().lower()
 THEMES = {
     "classic": dict(
         ink=(17, 20, 28), grey=(90, 98, 112), paper=(255, 255, 255), halo=(255, 255, 255),
@@ -58,8 +58,22 @@ THEMES = {
         tiles="esri_darkgray", tint=(14, 23, 38), glow=6,
         #           drizzle    light      moderate   mod+       heavy      v.heavy    intense    extreme
         palette=["#1F6F8B", "#22B8CF", "#38F2A0", "#E8FF3A", "#FFA41B", "#FF3D3D", "#FF2ED1", "#FFFFFF"]),
+    # CARD_THEME=day (default since 6 Nov 2026): clean white card for better
+    # Facebook / X engagement. Keeps MasRainman's own night colour scale
+    # (teal -> mint -> lime -> orange -> red -> magenta), deepened so every
+    # band stays strong on white; "Extreme" is deep violet instead of white.
+    "day": dict(
+        ink=(14, 22, 38), grey=(96, 108, 128), paper=(255, 255, 255), halo=(255, 255, 255),
+        sub=(38, 48, 68), sub2=(70, 82, 104), small=(24, 32, 48), accent=(214, 0, 160),
+        accent2=(176, 0, 132), pill=(14, 22, 38), pill_fg=(255, 255, 255), pill_sub=(190, 200, 218),
+        districts=(150, 160, 176), outline=(40, 50, 70), map_bg=(252, 252, 250),
+        dash=(14, 22, 38), arrow=(14, 22, 38), arrow_edge=(255, 255, 255),
+        basemap="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+        tiles="esri_lightgray", tint=None, glow=0,
+        #           drizzle    light      moderate   mod+       heavy      v.heavy    intense    extreme
+        palette=["#7FD3E6", "#1BA8C9", "#16C784", "#C6E000", "#FF9A00", "#F2272F", "#E0119D", "#5B1AA8"]),
 }
-T = THEMES.get(THEME, THEMES["night"])
+T = THEMES.get(THEME, THEMES["day"])
 INK, GREY, PAPER, HALO = T["ink"], T["grey"], T["paper"], T["halo"]
 ACCENT = T["accent"]
 TILE_CACHE = config.ROOT / "tiles_cache" / T["tiles"]   # new folder: old CARTO tiles had "API KEY REQUIRED" on them
