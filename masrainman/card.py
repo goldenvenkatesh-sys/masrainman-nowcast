@@ -738,7 +738,9 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     # header
     if not LOGO.exists():
         make_default_logo()
-    card.alpha_composite(Image.open(LOGO).convert("RGBA").resize((86, 86), Image.LANCZOS), (40, 24))
+    # assets/masrainman_logo.png = the rainbow-cloud art from the MasRainman
+    # logo (full logo with text: assets/masrainman_logo_full.png)
+    card.alpha_composite(Image.open(LOGO).convert("RGBA").resize((98, 98), Image.LANCZOS), (34, 18))
     d.text((140, 20), config.BRAND_NAME.upper(), font=font("black", 34), fill=INK)
     d.text((141, 64), "Experimental Rainfall Nowcast based on IMD Radar", font=font("semi", 20), fill=GREY)
     mixed_text(d, (141, 102), "IMD ரேடார் அடிப்படையிலான மழை முன்னறிவிப்பு (சோதனை)", 17, GREY)
