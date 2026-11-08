@@ -130,7 +130,10 @@ def _whatsapp_hourly(st: dict, cards: list[tuple[bytes, str]], peak_dbz: float =
 
 # ------------------------------------------------------------------ cycle --
 def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
-    """items: (region key, card path, caption) for every region with rain."""
+    """items: (key, card path, caption, audience) for every region with rain.
+    audience "all" = the wide region card (Telegram + approval for Facebook /
+    WhatsApp + WhatsApp hourly); "telegram" = close-up cards, Telegram only
+    (main channel + forward channel), never sent for approval or to WhatsApp."""
     if not config.TELEGRAM_BOT_TOKEN:
         print("[social] TELEGRAM_BOT_TOKEN not set -- skipping all posting")
         return
@@ -148,8 +151,11 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     channel_ids = st.setdefault("channel_message_ids", {})
     approval_ids = st.setdefault("approval_message_ids", {})
     targets = " + ".join(n for n, _ in publishers.enabled_targets())
-    forward_cards: list[tuple[bytes, str]] = []
-    for key, path, caption in items:
+    forward_cards: list[tuple[bytes, str]] = []     # Telegram forward channel: wide + close-ups
+    wide_cards: list[tuple[bytes, str]] = []        # WhatsApp hourly: wide only
+    for item in items:
+        key, path, caption = item[:3]
+        audience = item[3] if len(item) > 3 else "all"
         image = path.read_bytes()
         # 1) automatic Telegram channel post (one live post per region in "edit" mode)
         if config.TELEGRAM_CHANNEL_ID:
@@ -170,6 +176,9 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
                 print(f"[social] {key}: channel post failed: {e}")
 
         forward_cards.append((image, caption))
+        if audience != "all":
+            continue                       # close-ups stay on Telegram
+        wide_cards.append((image, caption))
 
         # 2) approval card in the admin's private chat
         if not (config.TELEGRAM_ADMIN_CHAT_ID and targets):
@@ -192,7 +201,7 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     _forward(st, forward_cards)
 
     # 4) automatic hourly WhatsApp Channel post (with share-the-channel footer)
-    _whatsapp_hourly(st, forward_cards, float(doc.get("peak_dbz") or 0))
+    _whatsapp_hourly(st, wide_cards, float(doc.get("peak_dbz") or 0))
 
     st["last_signature"] = sig
     _save(st)

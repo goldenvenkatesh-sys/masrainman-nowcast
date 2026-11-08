@@ -67,7 +67,8 @@ def build_items(engine):
     from masrainman.alerts import BOT_JSON, build_caption, build_nowcast, for_region
     from masrainman.card import MAP_BOX, render_card
     from masrainman.regions import (ENABLED, HASHTAGS, MAX_CARDS_PER_REGION, REGION_RADARS, REGIONS,
-                                    VIEW_LAT_DEG, best_window, fit_view, in_view)
+                                    VIEW_LAT_DEG, WIDE_MAX_VIEW_LAT_DEG, WIDE_VIEW_LAT_DEG, best_window,
+                                    fit_view, in_view)
 
     nc = build_nowcast()
     doc = json.loads(BOT_JSON.read_text()) if BOT_JSON.exists() else {}
@@ -94,9 +95,29 @@ def build_items(engine):
         if not (rnc.raining or rnc.coming):
             print(f"[cycle] {key}: no moderate+ rain at any town -- no card")
             continue
-        # 8 Nov 2026: close-up cards. Instead of zooming one card far out until
-        # every town fits, keep the view tight (VIEW_LAT_DEG, ~1.1 deg = ~120 km)
-        # and give each separate rain area its own card (up to MAX_CARDS_PER_REGION).
+        # --- 1) the earlier wide card: whole region on one map. Goes everywhere
+        #        (Telegram, approval -> Facebook / WhatsApp, WhatsApp hourly).
+        towns = [(p.lat, p.lon, p.now_dbz) for p in rnc.raining] + [(p.lat, p.lon, p.soon_dbz) for p in rnc.coming]
+        wc, _, wpeak = best_window(arr, g, obs_i, proj_i, bbox, WIDE_VIEW_LAT_DEG, aspect, towns)
+        wc, wview = fit_view(wc, WIDE_VIEW_LAT_DEG, aspect, towns, max_view=WIDE_MAX_VIEW_LAT_DEG)
+        wseen = lambda p: in_view(wc, wview, aspect, [(p.lat, p.lon)])
+        wnc = _replace(rnc, raining=[p for p in rnc.raining if wseen(p)], coming=[p for p in rnc.coming if wseen(p)])
+        if wnc.raining or wnc.coming:
+            path = config.OUTPUT_DIR / f"masrainman_{key}.jpg"
+            try:
+                render_card(wnc, engine, wc, wview, en, ta, path)
+                caption = build_caption(wnc, limit=940)
+                (config.OUTPUT_DIR / f"caption_{key}.txt").write_text(caption, encoding="utf-8")
+                print(f"[cycle] {key}: WIDE card -> {path} ({wview:.2f} deg tall, peak {wpeak:.0f} dBZ)")
+                print(caption)
+                items.append((key, path, caption, "all"))
+                doc["peak_dbz"] = max(float(doc.get("peak_dbz") or 0), float(wpeak or 0))
+            except Exception:
+                traceback.print_exc()
+
+        # --- 2) close-up cards (Telegram only): tight view (VIEW_LAT_DEG,
+        #        ~1.1 deg = ~120 km), one card per separate rain area,
+        #        up to MAX_CARDS_PER_REGION.
         left = [(p, "now") for p in rnc.raining] + [(p, "soon") for p in rnc.coming]
         work = arr.copy()                    # rain already shown on a card is blanked here
         n = 0
@@ -122,13 +143,11 @@ def build_items(engine):
             left = [t for t in left if t not in here]
             _blank(work, g, center, view, aspect)
             n += 1
-            ckey = key if n == 1 else f"{key}{n}"
+            ckey = f"{key}_z{n}"
             cnc = _replace(rnc, raining=[p for p, k in here if k == "now"],
                            coming=[p for p, k in here if k == "soon"])
             top = max(here, key=strength)[0]
-            multi = n > 1 or bool(left)
-            t_en = f"{en} - {top.en}" if multi else en
-            t_ta = f"{ta} - {top.ta}" if multi else ta
+            t_en, t_ta = f"{en} - {top.en}", f"{ta} - {top.ta}"     # close-up: named after its main town
             path = config.OUTPUT_DIR / f"masrainman_{ckey}.jpg"
             try:
                 render_card(cnc, engine, center, view, t_en, t_ta, path)
@@ -137,13 +156,12 @@ def build_items(engine):
                 continue
             caption = build_caption(cnc, limit=940)        # room left for the admin prompt line
             (config.OUTPUT_DIR / f"caption_{ckey}.txt").write_text(caption, encoding="utf-8")
-            print(f"[cycle] {ckey}: card -> {path} (view centre {center[0]:.2f},{center[1]:.2f}, "
+            print(f"[cycle] {ckey}: CLOSE-UP card -> {path} (view centre {center[0]:.2f},{center[1]:.2f}, "
                   f"{view:.2f} deg tall, {len(here)} town(s), peak {peak:.0f} dBZ)")
             print(caption)
-            items.append((ckey, path, caption))
-            doc["peak_dbz"] = max(float(doc.get("peak_dbz") or 0), float(peak or 0))   # for WhatsApp peak-mode
+            items.append((ckey, path, caption, "telegram"))
         if left:
-            print(f"[cycle] {key}: card limit reached, left out: {', '.join(p.en for p, _ in left)}")
+            print(f"[cycle] {key}: close-up card limit reached, left out: {', '.join(p.en for p, _ in left)}")
     return items, doc
 
 

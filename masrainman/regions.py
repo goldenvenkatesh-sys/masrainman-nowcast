@@ -98,7 +98,7 @@ MAX_VIEW_LAT_DEG = float(os.environ.get("MAX_VIEW_LAT_DEG", "1.4"))
 MAX_CARDS_PER_REGION = int(os.environ.get("MAX_CARDS_PER_REGION", "4"))
 
 
-def fit_view(center, view_lat, aspect, towns):
+def fit_view(center, view_lat, aspect, towns, max_view=None):
     """Zoom out (up to MAX_VIEW_LAT_DEG) and re-centre so every town in
     `towns` [(lat, lon, ...)] fits on the card with a small margin.
     Returns (center, view_lat)."""
@@ -110,7 +110,7 @@ def fit_view(center, view_lat, aspect, towns):
     need = max(max(la) - min(la) + 0.45, (max(lo) - min(lo) + 0.45) * cosm / aspect)
     if need <= view_lat and in_view(center, view_lat, aspect, towns, margin=0.12):
         return center, view_lat
-    v = min(max(view_lat, need), MAX_VIEW_LAT_DEG)
+    v = min(max(view_lat, need), max_view or MAX_VIEW_LAT_DEG)
     return mid, v
 
 
@@ -123,6 +123,11 @@ def in_view(center, view_lat, aspect, towns, margin=0.0):
 # Height of the zoomed view in degrees of latitude. 8 Nov 2026: 1.6 -> 1.1
 # (~120 km, roughly Gummidipoondi to Kalpakkam) for a closer look.
 VIEW_LAT_DEG = float(os.environ.get("VIEW_LAT_DEG", "1.1"))
+# The earlier wide card (one per region, zooms out so every town fits). Since
+# 8 Nov 2026 this is what goes to Facebook / WhatsApp; Telegram gets it plus
+# the close-up cards above.
+WIDE_VIEW_LAT_DEG = float(os.environ.get("WIDE_VIEW_LAT_DEG", "1.6"))
+WIDE_MAX_VIEW_LAT_DEG = float(os.environ.get("WIDE_MAX_VIEW_LAT_DEG", "3.0"))
 
 
 def describe(peak: float) -> tuple[str, str]:
