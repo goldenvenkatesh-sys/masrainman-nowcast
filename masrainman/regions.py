@@ -91,8 +91,11 @@ for _r in [r.strip() for r in os.environ.get("REGIONS", ",".join(ALL_KEYS)).spli
         if _k in ALL_KEYS and _k not in ENABLED:
             ENABLED.append(_k)
 
-# Widest the view may zoom out so every town named in a caption is on the card.
-MAX_VIEW_LAT_DEG = float(os.environ.get("MAX_VIEW_LAT_DEG", "3.0"))
+# Widest a card may zoom out to keep a group of towns together (8 Nov 2026:
+# was 3.0 -- now towns that don't fit go on their own close-up card instead).
+MAX_VIEW_LAT_DEG = float(os.environ.get("MAX_VIEW_LAT_DEG", "1.4"))
+# How many close-up cards one region may get in a cycle.
+MAX_CARDS_PER_REGION = int(os.environ.get("MAX_CARDS_PER_REGION", "4"))
 
 
 def fit_view(center, view_lat, aspect, towns):
@@ -117,9 +120,9 @@ def in_view(center, view_lat, aspect, towns, margin=0.0):
     return all(abs(t[0] - center[0]) <= half_la and abs(t[1] - center[1]) <= half_lo for t in towns)
 
 
-# Height of the zoomed view in degrees of latitude (1.6 deg ~ 180 km,
-# about the reference "Chennai and surroundings" framing).
-VIEW_LAT_DEG = float(os.environ.get("VIEW_LAT_DEG", "1.6"))
+# Height of the zoomed view in degrees of latitude. 8 Nov 2026: 1.6 -> 1.1
+# (~120 km, roughly Gummidipoondi to Kalpakkam) for a closer look.
+VIEW_LAT_DEG = float(os.environ.get("VIEW_LAT_DEG", "1.1"))
 
 
 def describe(peak: float) -> tuple[str, str]:

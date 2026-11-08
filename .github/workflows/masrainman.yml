@@ -24,7 +24,9 @@ jobs:
       TELEGRAM_CHANNEL_MODE: ${{ vars.TELEGRAM_CHANNEL_MODE || 'new' }}
       ALERT_MIN_DBZ: ${{ vars.ALERT_MIN_DBZ || '30' }}
       REGIONS: ${{ vars.REGIONS || 'tn,kl,ka' }}
-      VIEW_LAT_DEG: ${{ vars.VIEW_LAT_DEG || '1.6' }}
+      VIEW_LAT_DEG: ${{ vars.VIEW_LAT_DEG || '1.1' }}
+      MAX_VIEW_LAT_DEG: ${{ vars.MAX_VIEW_LAT_DEG || '1.4' }}
+      MAX_CARDS_PER_REGION: ${{ vars.MAX_CARDS_PER_REGION || '4' }}
       CARD_BLOCK: ${{ vars.CARD_BLOCK || '2' }}
       CARD_THEME: ${{ vars.CARD_THEME || 'day' }}
       CARD_RAIN_STYLE: ${{ vars.CARD_RAIN_STYLE || 'smooth' }}
