@@ -131,9 +131,9 @@ def _whatsapp_hourly(st: dict, cards: list[tuple[bytes, str]], peak_dbz: float =
 # ------------------------------------------------------------------ cycle --
 def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     """items: (key, card path, caption, audience) for every region with rain.
-    audience "all" = the wide region card (Telegram + approval for Facebook /
-    WhatsApp + WhatsApp hourly); "telegram" = close-up cards, Telegram only
-    (main channel + forward channel), never sent for approval or to WhatsApp."""
+    audience "all" = everywhere; "external" = the earlier 1.6 deg region card,
+    approval (-> Facebook / WhatsApp) + WhatsApp hourly only; "telegram" =
+    long-range overview + close-up cards, Telegram channel + forward channel only."""
     if not config.TELEGRAM_BOT_TOKEN:
         print("[social] TELEGRAM_BOT_TOKEN not set -- skipping all posting")
         return
@@ -158,7 +158,7 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
         audience = item[3] if len(item) > 3 else "all"
         image = path.read_bytes()
         # 1) automatic Telegram channel post (one live post per region in "edit" mode)
-        if config.TELEGRAM_CHANNEL_ID:
+        if config.TELEGRAM_CHANNEL_ID and audience != "external":
             try:
                 mid = channel_ids.get(key) if config.TELEGRAM_CHANNEL_MODE == "edit" else None
                 if mid:
@@ -175,8 +175,9 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
             except Exception as e:
                 print(f"[social] {key}: channel post failed: {e}")
 
-        forward_cards.append((image, caption))
-        if audience != "all":
+        if audience != "external":
+            forward_cards.append((image, caption))
+        if audience == "telegram":
             continue                       # close-ups stay on Telegram
         wide_cards.append((image, caption))
 

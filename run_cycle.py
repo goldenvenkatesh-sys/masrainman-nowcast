@@ -27,6 +27,20 @@ def _blank(work, g, center, view, aspect):
     work[:, r0:r1, c0:c1] = 0
 
 
+def _keep_towns(center, view, aspect, towns, margin=0.1):
+    """Shift `center` only as far as needed so every (lat, lon) in towns is on the card."""
+    import math
+    half = (view / 2, view * aspect / math.cos(math.radians(center[0])) / 2)
+    c = list(center)
+    for i in (0, 1):
+        vals = [t[i] for t in towns]
+        if not vals:
+            continue
+        lo_, hi_ = max(vals) - half[i] + margin, min(vals) + half[i] - margin
+        c[i] = (lo_ + hi_) / 2 if lo_ > hi_ else min(max(c[i], lo_), hi_)
+    return tuple(c)
+
+
 def _recentre(obs, g, center, view, aspect, towns, margin=0.1):
     """Put the rain itself in the middle of the card (not hugging an edge),
     while keeping every town in `towns` [(lat, lon)] on the card."""
@@ -69,6 +83,10 @@ def build_items(engine):
     from masrainman.regions import (ENABLED, HASHTAGS, MAX_CARDS_PER_REGION, REGION_RADARS, REGIONS,
                                     VIEW_LAT_DEG, WIDE_MAX_VIEW_LAT_DEG, WIDE_VIEW_LAT_DEG, best_window,
                                     fit_view, in_view)
+    import os
+    TELEGRAM_OVERVIEW = os.environ.get("TELEGRAM_OVERVIEW", "true").lower() != "false"
+    OVERVIEW_MIN_LAT_DEG = float(os.environ.get("OVERVIEW_MIN_LAT_DEG", "2.6"))
+    OVERVIEW_MAX_LAT_DEG = float(os.environ.get("OVERVIEW_MAX_LAT_DEG", "4.0"))
 
     nc = build_nowcast()
     doc = json.loads(BOT_JSON.read_text()) if BOT_JSON.exists() else {}
@@ -95,8 +113,8 @@ def build_items(engine):
         if not (rnc.raining or rnc.coming):
             print(f"[cycle] {key}: no moderate+ rain at any town -- no card")
             continue
-        # --- 1) the earlier wide card: whole region on one map. Goes everywhere
-        #        (Telegram, approval -> Facebook / WhatsApp, WhatsApp hourly).
+        # --- 1) the earlier wide card (1.6 deg, as before 8 Nov). Goes to the
+        #        approval card (-> Facebook / WhatsApp) and the WhatsApp hourly post.
         towns = [(p.lat, p.lon, p.now_dbz) for p in rnc.raining] + [(p.lat, p.lon, p.soon_dbz) for p in rnc.coming]
         wc, _, wpeak = best_window(arr, g, obs_i, proj_i, bbox, WIDE_VIEW_LAT_DEG, aspect, towns)
         wc, wview = fit_view(wc, WIDE_VIEW_LAT_DEG, aspect, towns, max_view=WIDE_MAX_VIEW_LAT_DEG)
@@ -108,10 +126,32 @@ def build_items(engine):
                 render_card(wnc, engine, wc, wview, en, ta, path)
                 caption = build_caption(wnc, limit=940)
                 (config.OUTPUT_DIR / f"caption_{key}.txt").write_text(caption, encoding="utf-8")
-                print(f"[cycle] {key}: WIDE card -> {path} ({wview:.2f} deg tall, peak {wpeak:.0f} dBZ)")
+                print(f"[cycle] {key}: WIDE card (FB/WhatsApp) -> {path} ({wview:.2f} deg tall, peak {wpeak:.0f} dBZ)")
                 print(caption)
-                items.append((key, path, caption, "all"))
+                items.append((key, path, caption, "external"))
                 doc["peak_dbz"] = max(float(doc.get("peak_dbz") or 0), float(wpeak or 0))
+            except Exception:
+                traceback.print_exc()
+
+        # --- 1b) LONG-RANGE overview for Telegram (8 Nov 2026): the whole region
+        #         on one map (~2.6-4 deg tall), clearly wider than the close-ups,
+        #         so Telegram shows the big picture first, then the close-ups.
+        if TELEGRAM_OVERVIEW:
+            south, west, north, east = bbox
+            import math as _m
+            oc = ((south + north) / 2, (west + east) / 2)
+            oview = max(north - south + 0.5, (east - west + 0.5) * _m.cos(_m.radians(oc[0])) / aspect)
+            oview = min(max(oview, OVERVIEW_MIN_LAT_DEG), OVERVIEW_MAX_LAT_DEG)
+            oc = _keep_towns(oc, oview, aspect, [(t[0], t[1]) for t in towns])
+            oseen = lambda p: in_view(oc, oview, aspect, [(p.lat, p.lon)])
+            onc = _replace(rnc, raining=[p for p in rnc.raining if oseen(p)], coming=[p for p in rnc.coming if oseen(p)])
+            path = config.OUTPUT_DIR / f"masrainman_{key}_wide.jpg"
+            try:
+                render_card(onc, engine, oc, oview, f"{en} (wide view)", f"{ta} (பரந்த பார்வை)", path)
+                caption = build_caption(onc, limit=940)
+                (config.OUTPUT_DIR / f"caption_{key}_wide.txt").write_text(caption, encoding="utf-8")
+                print(f"[cycle] {key}_wide: LONG-RANGE card (Telegram) -> {path} ({oview:.2f} deg tall)")
+                items.append((f"{key}_wide", path, caption, "telegram"))
             except Exception:
                 traceback.print_exc()
 
@@ -147,7 +187,7 @@ def build_items(engine):
             cnc = _replace(rnc, raining=[p for p, k in here if k == "now"],
                            coming=[p for p, k in here if k == "soon"])
             top = max(here, key=strength)[0]
-            t_en, t_ta = f"{en} - {top.en}", f"{ta} - {top.ta}"     # close-up: named after its main town
+            t_en, t_ta = f"{en} - {top.en} (close-up)", f"{ta} - {top.ta} (அருகில்)"   # named after its main town
             path = config.OUTPUT_DIR / f"masrainman_{ckey}.jpg"
             try:
                 render_card(cnc, engine, center, view, t_en, t_ta, path)
