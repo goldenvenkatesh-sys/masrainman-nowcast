@@ -87,6 +87,7 @@ def build_items(engine):
     TELEGRAM_OVERVIEW = os.environ.get("TELEGRAM_OVERVIEW", "true").lower() != "false"
     OVERVIEW_MIN_LAT_DEG = float(os.environ.get("OVERVIEW_MIN_LAT_DEG", "2.6"))
     OVERVIEW_MAX_LAT_DEG = float(os.environ.get("OVERVIEW_MAX_LAT_DEG", "4.0"))
+    STORY_CARDS = os.environ.get("STORY_CARDS", "true").lower() != "false"   # district + LIVE cards to the bot chat
 
     nc = build_nowcast()
     doc = json.loads(BOT_JSON.read_text()) if BOT_JSON.exists() else {}
@@ -202,6 +203,30 @@ def build_items(engine):
             items.append((ckey, path, caption, "telegram"))
         if left:
             print(f"[cycle] {key}: close-up card limit reached, left out: {', '.join(p.en for p, _ in left)}")
+
+        # --- 3) (10 Nov 2026) district-wise card + LIVE card, same caption text
+        #        as the other cards. Audience "bot" = ONLY the admin's private
+        #        Telegram bot chat (no channel / forward / WhatsApp / Facebook).
+        #        Kept apart in try/except so it can never disturb the cards above.
+        if STORY_CARDS:
+            try:
+                from masrainman.story_cards import live_place, render_district_card, render_live_card
+                if wnc.raining or wnc.coming:
+                    path = config.OUTPUT_DIR / f"masrainman_{key}_district.jpg"
+                    render_district_card(wnc, engine, wc, wview, path)
+                    items.append((f"{key}_district", path, build_caption(wnc, limit=1000), "bot"))
+                    print(f"[cycle] {key}_district: DISTRICT card (bot only) -> {path}")
+                lp = live_place(rnc)
+                if lp:
+                    seen = lambda p: in_view((lp.lat, lp.lon), VIEW_LAT_DEG, aspect, [(p.lat, p.lon)])
+                    lnc = _replace(rnc, raining=[p for p in rnc.raining if seen(p)],
+                                   coming=[p for p in rnc.coming if seen(p)])
+                    path = config.OUTPUT_DIR / f"masrainman_{key}_live.jpg"
+                    render_live_card(lnc, engine, lp, VIEW_LAT_DEG, path)
+                    items.append((f"{key}_live", path, build_caption(lnc, limit=1000), "bot"))
+                    print(f"[cycle] {key}_live: LIVE card for {lp.en} (bot only) -> {path}")
+            except Exception:
+                traceback.print_exc()
     return items, doc
 
 

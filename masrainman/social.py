@@ -133,7 +133,8 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     """items: (key, card path, caption, audience) for every region with rain.
     audience "all" = everywhere; "external" = the earlier 1.6 deg region card,
     approval (-> Facebook / WhatsApp) + WhatsApp hourly only; "telegram" =
-    long-range overview + close-up cards, Telegram channel + forward channel only."""
+    long-range overview + close-up cards, Telegram channel + forward channel only;
+    "bot" = district-wise + LIVE cards, admin's private bot chat only."""
     if not config.TELEGRAM_BOT_TOKEN:
         print("[social] TELEGRAM_BOT_TOKEN not set -- skipping all posting")
         return
@@ -157,6 +158,16 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
         key, path, caption = item[:3]
         audience = item[3] if len(item) > 3 else "all"
         image = path.read_bytes()
+        # 0) "bot" cards (district-wise + LIVE, 10 Nov 2026): ONLY the admin's
+        #    private bot chat -- no channel, forward album, approval, WhatsApp.
+        if audience == "bot":
+            if config.TELEGRAM_ADMIN_CHAT_ID:
+                try:
+                    m = tg.send_photo(config.TELEGRAM_ADMIN_CHAT_ID, image, caption)
+                    print(f"[social] {key}: bot-only card {m['message_id']} sent to admin chat")
+                except Exception as e:
+                    print(f"[social] {key}: bot-only card failed: {e}")
+            continue
         # 1) automatic Telegram channel post (one live post per region in "edit" mode)
         if config.TELEGRAM_CHANNEL_ID and audience != "external":
             try:

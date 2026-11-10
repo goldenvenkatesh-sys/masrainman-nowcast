@@ -544,9 +544,12 @@ def make_default_logo(path: Path = LOGO, size: int = 512):
     return img
 
 
-def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, out_path: Path) -> Path:
+def render_panel(nc: Nowcast, engine, center, view_lat_deg, size=None):
+    """The map panel alone (basemap, rain, projection, rings, arrows, town
+    labels) at `size` (w, h) px -- default = the regular card's MAP_BOX.
+    Returns (panel RGBA image, projection lead minutes or None).
+    Shared by the regular card and the district / LIVE cards (story_cards.py)."""
     from .places import PLACES
-    from .regions import describe
 
     arr, g = nc.grid
     names = [L["name"] for L in g["layers"]]
@@ -555,7 +558,7 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
     proj = arr[names.index(proj_name)] if proj_name else None
     proj_lead = int(proj_name[5:]) if proj_name else None
 
-    mw, mh = MAP_BOX[2] - MAP_BOX[0], MAP_BOX[3] - MAP_BOX[1]
+    mw, mh = size or (MAP_BOX[2] - MAP_BOX[0], MAP_BOX[3] - MAP_BOX[1])
     frame = Frame(center, view_lat_deg, mw, mh)
     panel = basemap(frame, engine).convert("RGBA")
     base_rgb = np.asarray(panel, dtype=np.int16)[..., :3].copy()
@@ -728,6 +731,14 @@ def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, o
         occupied.append(box)
         d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=INK)
         halo_text(d, (x, y - 12), en, f_small, fill=T["small"], stroke=3)
+
+    return panel, proj_lead
+
+
+def render_card(nc: Nowcast, engine, center, view_lat_deg, title_en, title_ta, out_path: Path) -> Path:
+    from .regions import describe
+
+    panel, proj_lead = render_panel(nc, engine, center, view_lat_deg)
 
     # ------------------------------------------------------- full card ----
     card = Image.new("RGBA", (W, H), PAPER + (255,))
