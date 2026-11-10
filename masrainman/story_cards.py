@@ -22,7 +22,8 @@ from .alerts import DIRS_TA, Nowcast, tier
 from .card import (GREY, INK, LOGO, PAPER, W, H, band_color, card_palette, fit_font, font, hex_rgb,
                    make_default_logo, mixed_text, render_panel)
 
-NAVY = (11, 59, 102)
+BLACK = (17, 17, 17)
+YELLOW = (255, 214, 10)
 RED = (200, 16, 46)
 LINE = (213, 220, 228)
 SOFT = (238, 243, 248)
@@ -102,14 +103,19 @@ def render_district_card(nc: Nowcast, engine, center, view_lat_deg, out_path: Pa
     t_now, day = _clock(nc)
 
     # header
-    d.rectangle([0, 0, W, 196], fill=NAVY)
-    d.text((48, 30), "MASRAINMAN NOWCAST", font=font("semi", 22), fill=(143, 216, 242))
+    # header: black normally (clean, stands out on white feeds); turns red
+    # only when heavy rain (40+ dBZ) is falling or due -- red stays an alarm.
+    peak = max([p.now_dbz for p in nc.raining] + [p.soon_dbz for p in nc.raining + nc.coming] + [0])
+    heavy = peak >= LIVE_MIN_DBZ
+    head_bg, kicker, sub = (RED, (255, 255, 255), (255, 222, 226)) if heavy else (BLACK, YELLOW, (205, 205, 205))
+    d.rectangle([0, 0, W, 196], fill=head_bg)
+    d.text((48, 30), "MASRAINMAN NOWCAST", font=font("semi", 22), fill=kicker)
     title = f"{nc.region_ta} மழை நிலவரம்"
     mixed_text(d, (48, 100), title, 50, (255, 255, 255), latin="xbold", tamil="ta_x", max_w=720)
     d.text((49, 152), f"{nc.region_en} • rain now and next 60 minutes",
-           font=fit_font(d, f"{nc.region_en} • rain now and next 60 minutes", "semi", 22, 720), fill=(207, 227, 244))
+           font=fit_font(d, f"{nc.region_en} • rain now and next 60 minutes", "semi", 22, 720), fill=sub)
     d.text((W - 48, 52), t_now, font=font("xbold", 46), fill=(255, 255, 255), anchor="rm")
-    d.text((W - 48, 110), f"{day} • IST", font=font("semi", 22), fill=(207, 227, 244), anchor="rm")
+    d.text((W - 48, 110), f"{day} • IST", font=font("semi", 22), fill=sub, anchor="rm")
 
     # radar map (same panel as the regular cards)
     mw, mh = W - 96, 540
