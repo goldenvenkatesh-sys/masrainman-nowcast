@@ -1,5 +1,7 @@
 name: probe-kochi (one-off, safe to delete)
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -22,7 +24,10 @@ jobs:
             done < "$f.links"
           done
           ls -la
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kochi-probe
-          path: probe/
+      - name: Save to branch probe-kochi
+        run: |
+          cd probe
+          git init -q && git checkout -q -b probe-kochi
+          git config user.name masrainman-bot && git config user.email masrainman-bot@users.noreply.github.com
+          git add -A && git commit -q -m "Kochi probe $(date -u +%FT%TZ)"
+          git push -f -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-kochi
