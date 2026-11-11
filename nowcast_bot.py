@@ -1077,7 +1077,18 @@ PRODUCTS = {
         # colour in every sample frame, grown 1 px.
         "static_exclude_mask": "masks/mpt_ppz_static_exclude.png",
         "min_strong_blob": (50.0, 15),
-        "label_exclude_boxes": [],
+        # 11 Nov 2026: four fixed basemap marks decoded as 39-41 dBZ "rain" -- they
+        # appeared ONLY in frames where mpt_ppz was used, with the identical
+        # values on the identical pixels every time (4 days of runs). They gave
+        # a permanent false "heavy rain near Bhongir" plus spots near
+        # Hanamkonda/Warangal, 19.55N 80.06E and 15.04N 78.18E. Boxes = the
+        # mapped pixels grown by 2 px.
+        "label_exclude_boxes": [
+            (176, 246, 184, 255),   # Bhongir / Bhuvanagiri (17.44N 78.93E)
+            (235, 196, 244, 206),   # near Hanamkonda / Warangal (18.08N 79.72E)
+            (260, 82, 269, 92),     # 19.55N 80.06E
+            (122, 434, 129, 440),   # 15.04N 78.18E
+        ],
     },
 
     # --- Sriharikota (ISRO SHAR) S-band DWR, 490 km PPI_Z at 0.2 deg
