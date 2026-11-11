@@ -5,23 +5,20 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
-      - name: Fetch Kochi DWR pages
+      - name: Probe Kochi WMS + timing
         run: |
           mkdir -p probe && cd probe
-          curl -sS -m 30 -D map.headers -o map.html http://117.221.70.132/map.html || true
-          curl -sS -m 30 -D radwiz.headers -o radwiz.html http://117.221.70.132/dwr/radwiz/ || true
-          # follow every image / js / json link found on the two pages (same host only)
-          for f in map.html radwiz.html; do
-            base=$([ "$f" = map.html ] && echo http://117.221.70.132/ || echo http://117.221.70.132/dwr/radwiz/)
-            grep -oiE '(src|href)="[^"]+"|["'"'"'][^"'"'"' ]+\.(gif|png|jpg|jpeg|js|json|txt)["'"'"']' "$f" | sed -E 's/^(src|href)=//I; s/["'"'"']//g' | sort -u | head -60 > "$f.links"
-            while read -r u; do
-              case "$u" in http*) url="$u";; /*) url="http://117.221.70.132$u";; *) url="$base$u";; esac
-              case "$url" in http://117.221.70.132*) ;; *) continue;; esac
-              out="dl_$(echo "$u" | tr '/?&=: ' '______' | cut -c1-80)"
-              curl -sS -m 20 -o "$out" "$url" || true
-            done < "$f.links"
+          W=http://117.221.70.132/geoserver/dwr_kochi/wms
+          curl -sS -m 40 -o caps.xml "$W?service=WMS&version=1.1.1&request=GetCapabilities" || true
+          for i in 1 2 3; do
+            curl -sS -m 30 -o ts_$i.txt http://117.221.70.132/timestamp.txt || true
+            curl -sS -m 30 -D wms_$i.h -o wms_$i.png "$W?service=WMS&version=1.1.1&request=GetMap&layers=dwr_kochi:maxz_image&styles=&srs=EPSG:4326&bbox=73.0,7.7,79.6,12.3&width=1320&height=920&format=image/png&transparent=true" || true
+            curl -sS -m 30 -D imd_$i.h -o imd_koc_$i.gif https://mausam.imd.gov.in/Radar/caz_koc.gif || true
+            curl -sS -m 30 -D jpg_$i.h -o maxz_$i.jpg http://117.221.70.132/dwr/radwiz/images/maxz.jpg || true
+            date -u +%T > t_$i.txt
+            [ $i -lt 3 ] && sleep 240
           done
           ls -la
       - name: Save to branch probe-kochi
