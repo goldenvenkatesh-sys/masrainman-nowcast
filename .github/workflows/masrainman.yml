@@ -74,7 +74,7 @@ jobs:
       - name: Install Tesseract OCR + Tamil text shaping libs
         id: aptinstall
         continue-on-error: true
-        timeout-minutes: 4
+        timeout-minutes: 3
         run: |
           PKGS="tesseract-ocr libraqm0 libfribidi0"
           APT_OPTS="-o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o APT::Keep-Downloaded-Packages=true"
@@ -86,9 +86,9 @@ jobs:
             echo "Cached install failed, trying the network"
           fi
           # Try with the image's package index first (no update), then refresh it.
-          sudo timeout 90 apt-get install -y -qq $APT_OPTS $PKGS \
-            || { sudo timeout 60 apt-get update -qq $APT_OPTS || true
-                 sudo timeout 90 apt-get install -y -qq $APT_OPTS $PKGS; }
+          sudo timeout 60 apt-get install -y -qq $APT_OPTS $PKGS \
+            || { sudo timeout 40 apt-get update -qq $APT_OPTS || true
+                 sudo timeout 60 apt-get install -y -qq $APT_OPTS $PKGS; }
           mkdir -p ~/aptdebs
           if cp /var/cache/apt/archives/*.deb ~/aptdebs/ 2>/dev/null; then
             echo "fresh=true" >> "$GITHUB_OUTPUT"
