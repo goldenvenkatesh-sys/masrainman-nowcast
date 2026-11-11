@@ -56,8 +56,51 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      # The OCR / Tamil-shaping packages are cached between runs, so a broken
+      # Ubuntu mirror can't stall the cycle. If they still can't be installed,
+      # the bot carries on: OCR falls back to poll-receipt time, Tamil text
+      # falls back to basic layout.
+      - name: Work out apt cache key
+        id: aptkey
+        run: echo "key=apt-tess-v1-${ImageOS}-${ImageVersion}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cached OCR packages
+        id: aptcache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/aptdebs
+          key: ${{ steps.aptkey.outputs.key }}
+
       - name: Install Tesseract OCR + Tamil text shaping libs
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr libraqm0 libfribidi0
+        id: aptinstall
+        continue-on-error: true
+        timeout-minutes: 4
+        run: |
+          PKGS="tesseract-ocr libraqm0 libfribidi0"
+          APT_OPTS="-o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o APT::Keep-Downloaded-Packages=true"
+          if ls ~/aptdebs/*.deb >/dev/null 2>&1; then
+            echo "Installing $(ls ~/aptdebs/*.deb | wc -l) cached packages"
+            if sudo dpkg -i ~/aptdebs/*.deb >/dev/null; then
+              echo "cached=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            echo "Cached install failed, trying the network"
+          fi
+          # Try with the image's package index first (no update), then refresh it.
+          sudo timeout 90 apt-get install -y -qq $APT_OPTS $PKGS \
+            || { sudo timeout 60 apt-get update -qq $APT_OPTS || true
+                 sudo timeout 90 apt-get install -y -qq $APT_OPTS $PKGS; }
+          mkdir -p ~/aptdebs
+          if cp /var/cache/apt/archives/*.deb ~/aptdebs/ 2>/dev/null; then
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save OCR packages to cache
+        if: ${{ steps.aptinstall.outcome == 'success' && steps.aptinstall.outputs.fresh == 'true' && steps.aptcache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ~/aptdebs
+          key: ${{ steps.aptkey.outputs.key }}
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt

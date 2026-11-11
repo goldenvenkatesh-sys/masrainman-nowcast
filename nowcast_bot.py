@@ -24,7 +24,8 @@ import cv2
 
 try:
     import pytesseract
-except ImportError:
+    pytesseract.get_tesseract_version()  # the tesseract binary must be installed too
+except Exception:
     pytesseract = None  # OCR is optional; falls back to poll-receipt time
 
 
