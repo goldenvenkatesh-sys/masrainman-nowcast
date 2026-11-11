@@ -1,8 +1,8 @@
 {
  "schema": 1,
- "version": "20261111T162713Z",
- "generated_utc": "2026-11-11T16:27:13+00:00",
- "generated_ist": "11 Nov 2026 21:57 IST",
+ "version": "20261111T163437Z",
+ "generated_utc": "2026-11-11T16:34:37+00:00",
+ "generated_ist": "11 Nov 2026 22:04 IST",
  "stale_after_min": 60,
  "radars": [
   {
@@ -24,7 +24,7 @@
    "range_km": 250.0,
    "obs_time_utc": "2026-11-11T16:12:22+00:00",
    "obs_time_ist": "11 Nov 21:42 IST",
-   "age_min": 15.0,
+   "age_min": 22.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: no earlier frame 4-45 min before the latest one"
@@ -36,7 +36,7 @@
    "range_km": 500.0,
    "obs_time_utc": "2026-11-11T16:20:25+00:00",
    "obs_time_ist": "11 Nov 21:50 IST",
-   "age_min": 7.0,
+   "age_min": 14.0,
    "status": "fresh",
    "used": true,
    "motion": "no motion: no earlier frame 4-45 min before the latest one"
@@ -142,12 +142,12 @@
    "radar": "hyderabad",
    "label": "Hyderabad DWR MAXZ - aloft / building",
    "range_km": 250.0,
-   "obs_time_utc": "2026-11-11T13:32:23+00:00",
-   "obs_time_ist": "11 Nov 19:02 IST",
-   "age_min": 175.0,
-   "status": "stale",
-   "used": false,
-   "motion": "no motion: frame too old to use"
+   "obs_time_utc": "2026-11-11T16:22:23+00:00",
+   "obs_time_ist": "11 Nov 21:52 IST",
+   "age_min": 12.0,
+   "status": "fresh",
+   "used": true,
+   "motion": "no motion: no earlier frame 4-45 min before the latest one"
   }
  ],
  "grid": {
@@ -387,46 +387,45 @@
    "id": 1,
    "radar": "machilipatnam",
    "product": "mpt_maxz",
-   "lat": 17.6968,
-   "lon": 80.0092,
-   "max_dbz": 41.2,
-   "area_km2": 10.6,
-   "trend": "unknown",
-   "elevated": false,
-   "confirmed_at_surface": false,
-   "speed_kmh": 0.0,
-   "bearing_deg": 177.0,
-   "motion_reliable": false
-  },
-  {
-   "id": 3,
-   "radar": "machilipatnam",
-   "product": "mpt_maxz",
-   "lat": 15.7951,
-   "lon": 79.3492,
+   "lat": 17.0075,
+   "lon": 82.4366,
    "max_dbz": 38.8,
    "area_km2": 5.3,
    "trend": "unknown",
    "elevated": false,
    "confirmed_at_surface": false,
    "speed_kmh": 0.0,
-   "bearing_deg": 11.0,
+   "bearing_deg": 271.0,
    "motion_reliable": false
   },
   {
-   "id": 4,
+   "id": 2,
    "radar": "machilipatnam",
    "product": "mpt_maxz",
-   "lat": 15.3794,
+   "lat": 15.3864,
    "lon": 78.9957,
    "max_dbz": 38.8,
    "area_km2": 5.3,
-   "trend": "unknown",
+   "trend": "steady",
    "elevated": false,
    "confirmed_at_surface": false,
-   "speed_kmh": 0.0,
-   "bearing_deg": 110.0,
-   "motion_reliable": false
+   "speed_kmh": 6.1,
+   "bearing_deg": 360.0,
+   "motion_reliable": true,
+   "projected": {
+    "30": [
+     15.4138,
+     78.9957
+    ],
+    "60": [
+     15.4413,
+     78.9957
+    ],
+    "90": [
+     15.4688,
+     78.9957
+    ]
+   }
   }
  ],
  "rain_areas": [
