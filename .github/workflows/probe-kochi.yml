@@ -1,0 +1,28 @@
+name: probe-kochi (one-off, safe to delete)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch Kochi DWR pages
+        run: |
+          mkdir -p probe && cd probe
+          curl -sS -m 30 -D map.headers -o map.html http://117.221.70.132/map.html || true
+          curl -sS -m 30 -D radwiz.headers -o radwiz.html http://117.221.70.132/dwr/radwiz/ || true
+          # follow every image / js / json link found on the two pages (same host only)
+          for f in map.html radwiz.html; do
+            base=$([ "$f" = map.html ] && echo http://117.221.70.132/ || echo http://117.221.70.132/dwr/radwiz/)
+            grep -oiE '(src|href)="[^"]+"|["'"'"'][^"'"'"' ]+\.(gif|png|jpg|jpeg|js|json|txt)["'"'"']' "$f" | sed -E 's/^(src|href)=//I; s/["'"'"']//g' | sort -u | head -60 > "$f.links"
+            while read -r u; do
+              case "$u" in http*) url="$u";; /*) url="http://117.221.70.132$u";; *) url="$base$u";; esac
+              case "$url" in http://117.221.70.132*) ;; *) continue;; esac
+              out="dl_$(echo "$u" | tr '/?&=: ' '______' | cut -c1-80)"
+              curl -sS -m 20 -o "$out" "$url" || true
+            done < "$f.links"
+          done
+          ls -la
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kochi-probe
+          path: probe/
