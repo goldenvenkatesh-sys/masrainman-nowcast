@@ -117,26 +117,32 @@ def render_district_card(nc: Nowcast, engine, center, view_lat_deg, out_path: Pa
     d.text((W - 48, 52), t_now, font=font("xbold", 46), fill=(255, 255, 255), anchor="rm")
     d.text((W - 48, 110), f"{day} • IST", font=font("semi", 22), fill=sub, anchor="rm")
 
-    # radar map (same panel as the regular cards)
-    mw, mh = W - 96, 540
-    panel, _ = render_panel(nc, engine, center, view_lat_deg, size=(mw, mh))
-    _paste_rounded(card, panel, (48, 222))
-    _colour_bar(card, engine, 48, W - 48, 782)
-    d.text((48, 816), "லேசான", font=font("ta", 18), fill=GREY, anchor="lm")
-    d.text((W - 48, 816), "அதி தீவிரம்", font=font("ta", 18), fill=GREY, anchor="rm")
-
-    # table: one row per town, raining-now first (lists are already ranked)
+    # table rows first: one per town, raining-now first (lists are already ranked)
     rows, seen = [], set()
     for p in list(nc.raining) + list(nc.coming):
         if p.en in seen:
             continue
         seen.add(p.en)
-        now = p.now_dbz
-        nxt = p.soon_dbz
-        rows.append((p, now, nxt))
+        rows.append((p, p.now_dbz, p.soon_dbz))
     rows = rows[:max_rows]
+
+    # 11 Nov 2026: the map grows into whatever the table doesn't use, so a
+    # 1-town card has no empty white gap -- every card fills the same frame
+    # and the table always ends just above the footer.
+    hh, rh = 58, 62
+    table_h = hh + rh * max(1, len(rows))
+    table_bottom = H - 150
+    top = table_bottom - table_h
+    map_top = 222
+    mw, mh = W - 96, top - 78 - map_top
+    panel, _ = render_panel(nc, engine, center, view_lat_deg, size=(mw, mh))
+    _paste_rounded(card, panel, (48, map_top))
+    bar_y = map_top + mh + 20
+    _colour_bar(card, engine, 48, W - 48, bar_y)
+    d.text((48, bar_y + 34), "லேசான", font=font("ta", 18), fill=GREY, anchor="lm")
+    d.text((W - 48, bar_y + 34), "அதி தீவிரம்", font=font("ta", 18), fill=GREY, anchor="rm")
+
     cols = [48, 470, 750, W - 48]
-    top, hh, rh = 840, 58, 62
     d.rounded_rectangle([cols[0], top, cols[3], top + hh + rh * max(1, len(rows))], 16, outline=LINE, width=2)
     d.rounded_rectangle([cols[0] + 1, top + 1, cols[3] - 1, top + hh], 15, fill=SOFT)
     d.rectangle([cols[0] + 1, top + hh - 16, cols[3] - 1, top + hh], fill=SOFT)
