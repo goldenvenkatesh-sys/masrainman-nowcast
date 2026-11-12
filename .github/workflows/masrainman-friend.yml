@@ -1,0 +1,66 @@
+name: MAS Rainman Friend (blog watch + SEO)
+
+on:
+  schedule:
+    - cron: "13 */2 * * *"   # every 2 hours (GitHub may start a few minutes late)
+  workflow_dispatch:
+    inputs:
+      force_report:
+        description: "Send the daily summary now too"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: masrainman-friend
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Get the Friend's script only (repo is large)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: friend
+          filter: blob:none
+
+      - name: Install requests
+        run: pip install -q requests
+
+      - name: Load memory (friend-state branch)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/contents/state.json?ref=friend-state" \
+            -H "Accept: application/vnd.github.raw" > friend/state.json 2>/dev/null || echo '{}' > friend/state.json
+          head -c 200 friend/state.json; echo
+
+      - name: Run MAS Rainman Friend
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+          FRIEND_STATE: friend/state.json
+          FORCE_REPORT: ${{ inputs.force_report && '1' || '' }}
+        run: python3 friend/masrainman_friend.py
+
+      - name: Save memory
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -s friend/state.json ] || exit 0
+          SHA=$(gh api "repos/${{ github.repository }}/contents/state.json?ref=friend-state" --jq .sha 2>/dev/null || true)
+          SHA="$SHA" python3 - <<'PY' > body.json
+          import base64, json, os
+          b = {"message": "friend state", "branch": "friend-state",
+               "content": base64.b64encode(open("friend/state.json", "rb").read()).decode()}
+          if os.environ.get("SHA"): b["sha"] = os.environ["SHA"]
+          print(json.dumps(b))
+          PY
+          gh api -X PUT "repos/${{ github.repository }}/contents/state.json" --input body.json --jq .commit.sha
+        shell: bash
