@@ -148,6 +148,20 @@ def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
         if not peak:
             st.pop("wa_promo_peak_done", None)       # re-arm for the next event
 
+        # Facebook Page: a join post every Sunday evening, plus one on a heavy-rain day
+        week = f"{ist.isocalendar()[0]}-W{ist.isocalendar()[1]}"
+        fb_weekly = ist.weekday() == 6 and 18 <= ist.hour < 20 and st.get("fb_promo_week") != week
+        fb_peak = peak and st.get("fb_promo_peak_day") != day
+        if cards and (fb_weekly or fb_peak) and publishers.facebook_enabled():
+            try:
+                publishers.post_facebook(max(cards, key=lambda c: len(c[0]))[0],
+                                         _promo_caption(st, peak).replace("*", "")
+                                         + "\n\n#RainAlert #ChennaiRains #TamilNaduWeather #KeralaRains #BengaluruRains #MasRainman")
+                st["fb_promo_week" if fb_weekly else "fb_promo_peak_day"] = week if fb_weekly else day
+                print("[promo] Facebook Page join post published")
+            except Exception as e:
+                print(f"[promo] Facebook join post failed: {e}")
+
         if (config.TELEGRAM_CHANNEL_ID and ist.hour == config.TG_PROMO_HOUR_IST
                 and st.get("tg_promo_day") != day):
             tg.send_message(config.TELEGRAM_CHANNEL_ID,

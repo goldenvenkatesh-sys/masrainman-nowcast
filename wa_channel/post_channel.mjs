@@ -71,6 +71,15 @@ function queued(dir = QUEUE_DIR) {
   });
 }
 
+// One-time channel branding: re-applied only when the description or logo file changes.
+const BRAND_DESC = './alert_channel_description.txt';
+const BRAND_LOGO = '../assets/alert_channel_logo.jpg';
+const BRAND_MARK = '../state/wa_alert_brand_applied.txt';
+const brandVersion = () => [BRAND_DESC, BRAND_LOGO].map(f => fs.existsSync(f) ? fs.statSync(f).size + ':' +
+  fs.readFileSync(f).reduce((h, b) => (h * 31 + b) >>> 0, 7) : '-').join('|');
+const brandPending = () => fs.existsSync(BRAND_DESC) && fs.existsSync(BRAND_LOGO) &&
+  (!fs.existsSync(BRAND_MARK) || fs.readFileSync(BRAND_MARK, 'utf8') !== brandVersion());
+
 const onlyChannel = jid => {
   if (!/^\d+@newsletter$/.test(jid || '')) throw new Error(`Refusing to post: ${jid || '(empty)'} is not a WhatsApp channel id`);
   return jid;
@@ -90,7 +99,7 @@ async function postQueue(sock, dir, jid, label) {
   return bad;
 }
 
-if (mode === 'post' && !queued().length && !queued(PROMO_DIR).length) {
+if (mode === 'post' && !queued().length && !queued(PROMO_DIR).length && !brandPending()) {
   console.log('Nothing queued for the WhatsApp channel this cycle.');
   process.exit(0);
 }
@@ -115,8 +124,8 @@ try {
     console.log('Channel:', meta?.name || meta?.thread_metadata?.name?.text || '');
     console.log('WA_CHANNEL_ID =', meta.id);
   } else {
-    // 1) radar cards + alerts -> the alerts channel
-    if (queued().length) {
+    // 1) radar cards + alerts -> the alerts channel (+ one-time branding)
+    if (queued().length || brandPending()) {
       let alertJid = process.env.WA_ALERT_CHANNEL_ID;
       if (!alertJid) {
         const meta = await sock.newsletterMetadata('invite', ALERT_LINK.split('/').pop());
@@ -124,7 +133,17 @@ try {
         console.log('Alerts channel resolved from link:', meta?.thread_metadata?.name?.text || meta?.name || '');
       }
       if (alertJid === process.env.WA_CHANNEL_ID) throw new Error('Alerts channel = main channel; refusing (radar must not go to the main channel)');
-      failed += await postQueue(sock, QUEUE_DIR, onlyChannel(alertJid), 'Alerts channel');
+      onlyChannel(alertJid);
+      if (brandPending()) {
+        try {   // needs the linked number to be an ADMIN of the alerts channel
+          await sock.newsletterUpdateDescription(alertJid, fs.readFileSync(BRAND_DESC, 'utf8').trim());
+          await sock.newsletterUpdatePicture(alertJid, fs.readFileSync(BRAND_LOGO));
+          fs.mkdirSync(path.dirname(BRAND_MARK), { recursive: true });
+          fs.writeFileSync(BRAND_MARK, brandVersion());
+          console.log('🎨 Alerts channel description + logo updated');
+        } catch (e) { console.log('⚠️ Branding not applied yet (is the bot number a channel admin?):', e.message); }
+      }
+      failed += await postQueue(sock, QUEUE_DIR, alertJid, 'Alerts channel');
     }
     // 2) promo teaser -> the main MasRainman channel
     if (queued(PROMO_DIR).length)

@@ -120,6 +120,8 @@ jobs:
           HAS_AUTH: ${{ secrets.WA_AUTH_B64 != '' }}
         run: |
           n=$(ls output/wa_queue/*.txt output/wa_promo_queue/*.txt 2>/dev/null | wc -l)
+          # one-time branding of the alerts channel counts as work too
+          if [ "$n" = "0" ] && [ ! -f state/wa_alert_brand_applied.txt ]; then n=1; fi
           echo "queued=$n" >> "$GITHUB_OUTPUT"
           echo "auth=$HAS_AUTH" >> "$GITHUB_OUTPUT"
           echo "WhatsApp queue: $n card(s), session secret present: $HAS_AUTH"
