@@ -260,7 +260,12 @@ def detect(text):
     for p in TN_PLACES:
         if re.search(r"\b" + re.escape(p) + r"\b", text, flags=re.I) and p not in places:
             places.append(p)
-    systems = [s for s in SYSTEMS if re.search(s[0], text, flags=re.I)]
+    found = []
+    for s in SYSTEMS:
+        m = re.search(s[0], text, flags=re.I)
+        if m:
+            found.append((m.start(), s))
+    systems = [s for _, s in sorted(found, key=lambda x: x[0])]
     return places, systems
 
 
@@ -407,15 +412,33 @@ def google_trends_in():
     return hits
 
 
+SB_TEXT = {1: "no unsafe content", 2: "SITE MARKED UNSAFE", 3: "some pages marked unsafe",
+           4: "check a specific URL", 5: "uncommon downloads", 6: "no data"}
+
+
+def _sb(site):
+    r = get("https://transparencyreport.google.com/transparencyreport/api/v3/safebrowsing/status?site=" + site)
+    data = json.loads(r.text.split("\n", 1)[-1])
+    return data[0][1]
+
+
 def safe_browsing():
+    """Returns (text, alert?). blogspot.com is shared by millions of blogs, so Google's status
+    for a *.blogspot.com name can reflect other people's blogs. A control blog tells us that."""
     try:
-        r = get("https://transparencyreport.google.com/transparencyreport/api/v3/safebrowsing/status?site=masrainman.blogspot.com")
-        body = r.text.split("\n", 1)[-1]
-        data = json.loads(body)
-        code = data[0][1]
-        return {1: "OK – no unsafe content", 4: "OK – no data (fine)", 6: "no data"}.get(code, f"CHECK – code {code}"), code
+        code = _sb("masrainman.blogspot.com")
     except Exception as e:
-        return f"not checked ({e.__class__.__name__})", None
+        return f"not checked ({e.__class__.__name__})", False
+    if code in (1, 6):
+        return f"OK – {SB_TEXT[code]}", False
+    try:
+        ctrl = _sb("googleblog.blogspot.com")
+    except Exception:
+        ctrl = None
+    print("safe browsing codes: masrainman", code, "control", ctrl)
+    if ctrl == code:
+        return f"OK for your blog (code {code} '{SB_TEXT.get(code, '?')}' is shown for the shared blogspot.com domain too)", False
+    return f"code {code} – {SB_TEXT.get(code, 'unknown')} (control blog: {ctrl})", True
 
 
 # ---------------------------------------------------------------- main
@@ -475,9 +498,9 @@ def main():
     except Exception as e:
         notes.append(f"robots.txt not checked ({e.__class__.__name__})")
 
-    sb_text, sb_code = safe_browsing()
-    if sb_code not in (None, 1, 4, 6):
-        alerts.append(f"Google Safe Browsing: {sb_text}")
+    sb_text, sb_alert = safe_browsing()
+    if sb_alert:
+        alerts.append(f"Google Safe Browsing: {sb_text} – check https://transparencyreport.google.com/safe-browsing/search?url=masrainman.blogspot.com")
 
     # 2. posts
     posts = []
