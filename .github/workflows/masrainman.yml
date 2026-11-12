@@ -41,6 +41,13 @@ jobs:
       TELEGRAM_ADMIN_IDS: ${{ secrets.TELEGRAM_ADMIN_IDS }}
       FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
       FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+      # promotion agent outlets (each one switches on when its secrets exist)
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+      IG_TOKEN: ${{ secrets.IG_TOKEN }}
+      X_API_KEY: ${{ secrets.X_API_KEY }}
+      X_API_SECRET: ${{ secrets.X_API_SECRET }}
+      X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
       WHAPI_TOKEN: ${{ secrets.WHAPI_TOKEN }}
       WHAPI_CHANNEL_ID: ${{ secrets.WHAPI_CHANNEL_ID }}
       WA_CHANNEL_EVERY_MIN: ${{ vars.WA_CHANNEL_EVERY_MIN || '60' }}
@@ -122,6 +129,15 @@ jobs:
           n=$(ls output/wa_queue/*.txt output/wa_promo_queue/*.txt 2>/dev/null | wc -l)
           # one-time branding of the alerts channel counts as work too
           if [ "$n" = "0" ] && [ ! -f state/wa_alert_brand_applied.txt ]; then n=1; fi
+          # follower count for the weekly report: at least once every 3 hours
+          last=$(tail -n1 state/wa_followers.csv 2>/dev/null | cut -c1-19)
+          due=1
+          if [ -n "$last" ] && [ "$last" != "utc" ]; then
+            age=$(( $(date -u +%s) - $(date -u -d "$last" +%s 2>/dev/null || echo 0) ))
+            [ "$age" -lt 10800 ] && due=0
+          fi
+          echo "count_due=$due" >> "$GITHUB_OUTPUT"
+          if [ "$n" = "0" ] && [ "$due" = "1" ]; then n=1; fi
           echo "queued=$n" >> "$GITHUB_OUTPUT"
           echo "auth=$HAS_AUTH" >> "$GITHUB_OUTPUT"
           echo "WhatsApp queue: $n card(s), session secret present: $HAS_AUTH"
@@ -150,6 +166,7 @@ jobs:
           WA_CHANNEL_ID: ${{ secrets.WA_CHANNEL_ID }}              # main MasRainman channel (promo only)
           WA_ALERT_CHANNEL_ID: ${{ secrets.WA_ALERT_CHANNEL_ID }}  # optional; else resolved from the link
           WA_ALERT_CHANNEL_LINK: ${{ vars.WA_ALERT_CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbE2C5F9RZAanCxEFv0o' }}
+          WA_COUNT_DUE: ${{ steps.waq.outputs.count_due }}
         run: |
           if [ ! -f wa_auth/creds.json ]; then
             echo "$WA_AUTH_B64" | base64 -d > seed.zip && unzip -oq seed.zip -d . && rm seed.zip

@@ -82,6 +82,14 @@ WA_PROMO_GAP_H = float(_env("WA_PROMO_GAP_H", "4"))
 WA_PROMO_QUEUE_DIR = OUTPUT_DIR / "wa_promo_queue"  # -> main channel
 # Telegram channel gets one daily "also on WhatsApp" line (IST hour)
 TG_PROMO_HOUR_IST = int(_env("TG_PROMO_HOUR_IST", "19"))
+# Instagram (business/creator account linked to the Facebook Page)
+IG_USER_ID = _env("IG_USER_ID")
+IG_TOKEN = _env("IG_TOKEN") or _env("FB_PAGE_TOKEN")
+# X / Twitter (OAuth 1.0a user keys with Read+Write)
+X_API_KEY = _env("X_API_KEY")
+X_API_SECRET = _env("X_API_SECRET")
+X_ACCESS_TOKEN = _env("X_ACCESS_TOKEN")
+X_ACCESS_SECRET = _env("X_ACCESS_SECRET")
 
 # --- What to post -------------------------------------------------------------
 # Minimum dBZ for a place to be named (and for a region to get a card):

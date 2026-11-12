@@ -18,7 +18,7 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-from . import config, publishers
+from . import config, publishers, promoter
 from . import telegram as tg
 from pathlib import Path
 
@@ -80,7 +80,9 @@ def wa_share_footer() -> str:
     return ("\n\n🔔 இந்த South India Radar Nowcast Alerts சேனலை உங்கள் குடும்பம், நண்பர்கள் மற்றும் ஊர் "
             "குழுக்களுக்கு பகிருங்கள் — மழை நெருங்கும்போது தானியங்கி ரேடார் எச்சரிக்கை இலவசமாக கிடைக்கும். "
             "Share this channel with your family, friends and local groups so everyone gets free automatic "
-            f"radar rain alerts. Follow 👉 {config.WA_CHANNEL_LINK}")
+            f"radar rain alerts. Follow 👉 {config.WA_CHANNEL_LINK}\n"
+            "🌧️ உங்கள் ஊரில் மழையா? ரியாக்ட் செய்யுங்கள் · React 🌧️ if it's raining at your place, "
+            "and forward this card to your family group.")
 
 
 # ------------------------------------------------------ promotion agent --
@@ -143,6 +145,7 @@ def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
                 st["wa_promo_slots"].append(slot)
             else:
                 st["wa_promo_peak_done"] = True
+            promoter.log("WhatsApp main channel", "join teaser" + (" (heavy rain)" if not due_slot else ""))
             print(f"[promo] main-channel teaser queued ({'peak' if not due_slot else f'slot {slot}:00 IST'}, "
                   f"{st['wa_promo_count']}/{config.WA_PROMO_MAX_PER_DAY} today)")
         if not peak:
@@ -158,9 +161,35 @@ def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
                                          _promo_caption(st, peak).replace("*", "")
                                          + "\n\n#RainAlert #ChennaiRains #TamilNaduWeather #KeralaRains #BengaluruRains #MasRainman")
                 st["fb_promo_week" if fb_weekly else "fb_promo_peak_day"] = week if fb_weekly else day
+                promoter.log("Facebook Page", "join post" + (" (heavy rain)" if not fb_weekly else ""))
                 print("[promo] Facebook Page join post published")
             except Exception as e:
+                promoter.log("Facebook Page", "join post", False, str(e))
                 print(f"[promo] Facebook join post failed: {e}")
+
+        # Instagram: QR "scan to follow" poster every Wednesday evening
+        if ist.weekday() == 2 and 19 <= ist.hour < 21 and st.get("ig_promo_week") != week and promoter.instagram_enabled():
+            try:
+                promoter.post_instagram(_promo_caption(st, False).replace("*", "")
+                                        + "\n\n📲 Scan the QR or tap the link in our bio.\n" + promoter.TAGS)
+                st["ig_promo_week"] = week
+                promoter.log("Instagram", "QR poster post")
+                print("[promo] Instagram QR poster published")
+            except Exception as e:
+                st["ig_promo_week"] = week          # don't retry every 10 min
+                promoter.log("Instagram", "QR poster post", False, str(e))
+                print(f"[promo] Instagram post failed: {e}")
+
+        # X (Twitter): one post a day at 6 PM IST, or earlier the first time heavy rain shows up
+        if promoter.x_enabled() and st.get("x_promo_day") != day and (ist.hour == 18 or peak):
+            try:
+                promoter.post_x(promoter.x_text(peak))
+                promoter.log("X (Twitter)", "join post" + (" (heavy rain)" if peak else ""))
+                print("[promo] X post published")
+            except Exception as e:
+                promoter.log("X (Twitter)", "join post", False, str(e))
+                print(f"[promo] X post failed: {e}")
+            st["x_promo_day"] = day
 
         if (config.TELEGRAM_CHANNEL_ID and ist.hour == config.TG_PROMO_HOUR_IST
                 and st.get("tg_promo_day") != day):
@@ -168,6 +197,7 @@ def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
                             f"📲 WhatsApp-இல் ரேடார் எச்சரிக்கை வேண்டுமா? Get these radar alerts on WhatsApp too:\n"
                             f"{config.WA_CHANNEL_NAME} 👉 {config.WA_CHANNEL_LINK}")
             st["tg_promo_day"] = day
+            promoter.log("Telegram channel", "daily join line")
             print("[promo] daily join line posted in the Telegram channel")
     except Exception as e:
         print(f"[promo] skipped: {e}")
@@ -232,11 +262,12 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     sig = _radar_signature(doc)
     if sig and sig == st.get("last_signature"):
         print("[social] no new radar frame since last post -- nothing to send")
+        _marketing(st, [], doc, posted=False)
         return
     if not items:
         print("[social] no region has rain worth posting this cycle")
         st["last_signature"] = sig
-        _save(st)
+        _marketing(st, [], doc, posted=False)
         return
 
     channel_ids = st.setdefault("channel_message_ids", {})
@@ -305,10 +336,24 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
     # 4) automatic hourly WhatsApp Channel post (with share-the-channel footer)
     _whatsapp_hourly(st, wide_cards, float(doc.get("peak_dbz") or 0))
 
-    # 5) promotion agent: join-link teaser for the main channel + Telegram
-    _promote(st, wide_cards, float(doc.get("peak_dbz") or 0) >= config.WA_CHANNEL_PEAK_DBZ)
-
+    # 5) promotion agent
     st["last_signature"] = sig
+    _marketing(st, wide_cards, doc, posted=bool(wide_cards))
+
+
+def _marketing(st: dict, wide_cards: list[tuple[bytes, str]], doc: dict, posted: bool) -> None:
+    """Promotion agent, run every cycle (rain or not). Never raises."""
+    try:
+        peak = float(doc.get("peak_dbz") or 0) >= config.WA_CHANNEL_PEAK_DBZ
+        promoter.keep_alive(st, posted)
+        if promoter.branding_done():
+            _promote(st, wide_cards, peak)
+        else:
+            print("[promo] waiting: alerts channel logo/description not applied yet "
+                  "(add the bot's number as channel admin) -- marketing starts after that")
+        promoter.weekly_report(st)
+    except Exception as e:
+        print(f"[promo] agent error: {e}")
     _save(st)
 
 

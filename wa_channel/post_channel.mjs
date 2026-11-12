@@ -75,6 +75,7 @@ function queued(dir = QUEUE_DIR) {
 const BRAND_DESC = './alert_channel_description.txt';
 const BRAND_LOGO = '../assets/alert_channel_logo.jpg';
 const BRAND_MARK = '../state/wa_alert_brand_applied.txt';
+const FOLLOWERS = '../state/wa_followers.csv';
 const brandVersion = () => [BRAND_DESC, BRAND_LOGO].map(f => fs.existsSync(f) ? fs.statSync(f).size + ':' +
   fs.readFileSync(f).reduce((h, b) => (h * 31 + b) >>> 0, 7) : '-').join('|');
 const brandPending = () => fs.existsSync(BRAND_DESC) && fs.existsSync(BRAND_LOGO) &&
@@ -99,7 +100,7 @@ async function postQueue(sock, dir, jid, label) {
   return bad;
 }
 
-if (mode === 'post' && !queued().length && !queued(PROMO_DIR).length && !brandPending()) {
+if (mode === 'post' && !queued().length && !queued(PROMO_DIR).length && !brandPending() && process.env.WA_COUNT_DUE !== '1') {
   console.log('Nothing queued for the WhatsApp channel this cycle.');
   process.exit(0);
 }
@@ -125,8 +126,8 @@ try {
     console.log('WA_CHANNEL_ID =', meta.id);
   } else {
     // 1) radar cards + alerts -> the alerts channel (+ one-time branding)
-    if (queued().length || brandPending()) {
-      let alertJid = process.env.WA_ALERT_CHANNEL_ID;
+    let alertJid = process.env.WA_ALERT_CHANNEL_ID;
+    {
       if (!alertJid) {
         const meta = await sock.newsletterMetadata('invite', ALERT_LINK.split('/').pop());
         alertJid = meta?.id;
@@ -138,9 +139,14 @@ try {
         try {   // needs the linked number to be an ADMIN of the alerts channel
           await sock.newsletterUpdateDescription(alertJid, fs.readFileSync(BRAND_DESC, 'utf8').trim());
           await sock.newsletterUpdatePicture(alertJid, fs.readFileSync(BRAND_LOGO));
+          await wait(4000);
+          const check = await sock.newsletterMetadata('jid', alertJid);   // verify it really changed
+          const now = check?.thread_metadata?.description?.text ?? check?.description ?? '';
+          const want = fs.readFileSync(BRAND_DESC, 'utf8').trim();
+          if (now && now.trim() !== want) throw new Error('description did not stick (read back a different text)');
           fs.mkdirSync(path.dirname(BRAND_MARK), { recursive: true });
           fs.writeFileSync(BRAND_MARK, brandVersion());
-          console.log('🎨 Alerts channel description + logo updated');
+          console.log('🎨 Alerts channel description + logo updated and verified — marketing can start');
         } catch (e) { console.log('⚠️ Branding not applied yet (is the bot number a channel admin?):', e.message); }
       }
       failed += await postQueue(sock, QUEUE_DIR, alertJid, 'Alerts channel');
@@ -148,6 +154,20 @@ try {
     // 2) promo teaser -> the main MasRainman channel
     if (queued(PROMO_DIR).length)
       failed += await postQueue(sock, PROMO_DIR, onlyChannel(process.env.WA_CHANNEL_ID), 'Main channel promo');
+
+    // 3) follower counts for the weekly report (net count only; WhatsApp exposes no unfollow list)
+    try {
+      const count = async jid => {
+        const m = await sock.newsletterMetadata('jid', jid);
+        return m?.thread_metadata?.subscribers_count ?? m?.subscribers ?? '';
+      };
+      const a = await count(alertJid).catch(() => '');
+      const b = process.env.WA_CHANNEL_ID ? await count(process.env.WA_CHANNEL_ID).catch(() => '') : '';
+      fs.mkdirSync(path.dirname(FOLLOWERS), { recursive: true });
+      if (!fs.existsSync(FOLLOWERS)) fs.writeFileSync(FOLLOWERS, 'utc,alerts,main\n');
+      fs.appendFileSync(FOLLOWERS, `${new Date().toISOString().slice(0, 19)}+00:00,${a},${b}\n`);
+      console.log(`👥 Followers — alerts: ${a}, main: ${b}`);
+    } catch (e) { console.log('⚠️ Follower count failed:', e.message); }
   }
   await wait(5000); // flush rotated keys to disk before exit
 } finally {
