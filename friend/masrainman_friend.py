@@ -495,7 +495,7 @@ def main():
         rb = rr.text.strip()
         if "Disallow: /\n" in rb + "\n" and "User-agent: *" in rb and "Disallow: /search" not in rb:
             alerts.append("robots.txt blocks the whole blog from Google")
-        if st.get("robots_txt") is not None and rb != st["robots_txt"]:
+        if st.get("robots_txt") and "<html" not in st["robots_txt"].lower() and rb != st["robots_txt"]:
             alerts.append("robots.txt changed:\n" + rb[:400])
         st["robots_txt"] = rb
     except Exception as e:
