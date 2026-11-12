@@ -1,0 +1,47 @@
+name: Promotion agent - test post
+
+# Manual one-off check that an outlet's secrets work (posts the join post once).
+on:
+  workflow_dispatch:
+    inputs:
+      outlet:
+        description: "instagram or x"
+        required: true
+        default: instagram
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+      IG_TOKEN: ${{ secrets.IG_TOKEN }}
+      FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+      X_API_KEY: ${{ secrets.X_API_KEY }}
+      X_API_SECRET: ${{ secrets.X_API_SECRET }}
+      X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - name: Test post
+        run: |
+          python - <<'EOF'
+          import os
+          from masrainman import promoter
+          outlet = "${{ inputs.outlet }}"
+          caption = ("🛰️ மழை உங்கள் ஊருக்கு வருகிறதா? நேரடி ரேடார் மழை எச்சரிக்கை இப்போது WhatsApp-இல்!\n"
+                     "Is rain heading to your town? Free live radar rain alerts for South India, now on WhatsApp.\n\n"
+                     "📲 Scan the QR to follow South India Radar Nowcast Alerts, or use the link in our bio.\n"
+                     + promoter.TAGS)
+          if outlet == "instagram":
+              assert promoter.instagram_enabled(), "IG_USER_ID / IG_TOKEN secrets missing"
+              print("Instagram post id:", promoter.post_instagram(caption))
+              promoter.log("Instagram", "QR poster post (test)")
+          else:
+              assert promoter.x_enabled(), "X_* secrets missing"
+              print("X post id:", promoter.post_x(promoter.x_text(False)))
+          EOF
