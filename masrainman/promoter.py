@@ -205,7 +205,7 @@ def weekly_report(st: dict, force: bool = False) -> str | None:
             "• Daily posting, incl. a dry-day morning status (directory rewards regular posting)\n"
             "• Every card asks for a 🌧️ reaction and a forward to family groups (forwards link back to the channel)\n"
             "• Teasers in the main channel (8 AM, 6 PM + heavy-rain), Telegram daily, Facebook Sun + rain days, "
-            "Instagram QR poster weekly, X daily\n\n"
+            "Instagram QR poster weekly (X paused: its API charges per post)\n\n"
             "💡 Manual boost that only you can do: post the channel link to your WhatsApp Status twice a week.")
     if config.TELEGRAM_ADMIN_CHAT_ID:
         try:
