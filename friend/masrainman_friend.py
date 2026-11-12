@@ -489,14 +489,17 @@ def main():
 
     # robots.txt (Blogger custom robots.txt can be abused)
     try:
-        rb = get(BLOG + "/robots.txt").text.strip()
+        rr = get(BLOG + "/robots.txt")
+        if rr.status_code != 200 or "<html" in rr.text[:300].lower():
+            raise ValueError(f"robots.txt HTTP {rr.status_code}")  # Blogger sometimes 404s it briefly
+        rb = rr.text.strip()
         if "Disallow: /\n" in rb + "\n" and "User-agent: *" in rb and "Disallow: /search" not in rb:
             alerts.append("robots.txt blocks the whole blog from Google")
         if st.get("robots_txt") is not None and rb != st["robots_txt"]:
             alerts.append("robots.txt changed:\n" + rb[:400])
         st["robots_txt"] = rb
     except Exception as e:
-        notes.append(f"robots.txt not checked ({e.__class__.__name__})")
+        print(f"robots.txt not checked ({e})")
 
     sb_text, sb_alert = safe_browsing()
     if sb_alert:
