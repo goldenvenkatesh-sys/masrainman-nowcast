@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       outlet:
-        description: "instagram or x"
+        description: "instagram, x or xtap"
         required: true
         default: instagram
 
@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
       IG_USER_ID: ${{ secrets.IG_USER_ID }}
       IG_TOKEN: ${{ secrets.IG_TOKEN }}
       FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
@@ -41,6 +43,15 @@ jobs:
               assert promoter.instagram_enabled(), "IG_USER_ID / IG_TOKEN secrets missing"
               print("Instagram post id:", promoter.post_instagram(caption))
               promoter.log("Instagram", "QR poster post (test)")
+          elif outlet == "xtap":
+              import urllib.parse
+              from masrainman import config, telegram as tg
+              text = promoter.x_text(False)
+              tg.call("sendMessage", {"chat_id": config.TELEGRAM_ADMIN_CHAT_ID, "disable_web_page_preview": True,
+                      "text": "🐦 Test: today's X post for @MasRainman is ready — tap the button, then tap Post.\n\n" + text,
+                      "reply_markup": {"inline_keyboard": [[{"text": "📤 Post on X",
+                                       "url": "https://x.com/intent/post?text=" + urllib.parse.quote(text)}]]}})
+              print("one-tap message sent")
           else:
               assert promoter.x_enabled(), "X_* secrets missing"
               print("X post id:", promoter.post_x(promoter.x_text(False)))

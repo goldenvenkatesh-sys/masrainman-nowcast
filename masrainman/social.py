@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import time
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 from . import config, publishers, promoter
@@ -189,6 +190,21 @@ def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
             except Exception as e:
                 promoter.log("X (Twitter)", "join post", False, str(e))
                 print(f"[promo] X post failed: {e}")
+            st["x_promo_day"] = day
+        # No paid X API -> one-tap: ready-made post with a "Post on X" button in the admin's bot chat
+        elif (not promoter.x_enabled() and config.TELEGRAM_ADMIN_CHAT_ID and st.get("x_promo_day") != day
+              and (ist.hour == 18 or peak)):
+            try:
+                text = promoter.x_text(peak)
+                url = "https://x.com/intent/post?text=" + urllib.parse.quote(text)
+                tg.call("sendMessage", {"chat_id": config.TELEGRAM_ADMIN_CHAT_ID, "disable_web_page_preview": True,
+                                        "text": "🐦 Today's X post for @MasRainman is ready — tap the button, then tap Post.\n\n" + text,
+                                        "reply_markup": {"inline_keyboard": [[{"text": "📤 Post on X", "url": url}]]}})
+                promoter.log("X (one-tap via Telegram)", "ready-made post sent to you" + (" (heavy rain)" if peak else ""))
+                print("[promo] X one-tap post sent to admin chat")
+            except Exception as e:
+                promoter.log("X (one-tap via Telegram)", "ready-made post", False, str(e))
+                print(f"[promo] X one-tap message failed: {e}")
             st["x_promo_day"] = day
 
         if (config.TELEGRAM_CHANNEL_ID and ist.hour == config.TG_PROMO_HOUR_IST
