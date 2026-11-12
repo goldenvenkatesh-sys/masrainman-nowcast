@@ -77,10 +77,86 @@ def _forward(st: dict, cards: list[tuple[bytes, str]]) -> None:
 
 
 def wa_share_footer() -> str:
-    return ("\n\n🔔 இந்த MasRainman WhatsApp சேனலை உங்கள் குடும்பம், நண்பர்கள் மற்றும் ஊர் குழுக்களுக்கு "
-            "பகிருங்கள் — ஒவ்வொரு மணி நேரமும் தானியங்கி மழை நவ்காஸ்ட் எச்சரிக்கை இலவசமாக கிடைக்கும். "
-            "Share this channel with your family, friends and local groups so everyone gets automatic "
-            f"hourly rain nowcast alerts for free. Follow 👉 {config.WA_CHANNEL_LINK}")
+    return ("\n\n🔔 இந்த South India Radar Nowcast Alerts சேனலை உங்கள் குடும்பம், நண்பர்கள் மற்றும் ஊர் "
+            "குழுக்களுக்கு பகிருங்கள் — மழை நெருங்கும்போது தானியங்கி ரேடார் எச்சரிக்கை இலவசமாக கிடைக்கும். "
+            "Share this channel with your family, friends and local groups so everyone gets free automatic "
+            f"radar rain alerts. Follow 👉 {config.WA_CHANNEL_LINK}")
+
+
+# ------------------------------------------------------ promotion agent --
+PROMO_TEXT = [
+    # rotated so the main channel doesn't see the same post every time
+    ("🛰️ மழை உங்கள் ஊருக்கு வருகிறதா? நேரடி ரேடார் நவ்காஸ்ட் எச்சரிக்கைகள் இப்போது தனி சேனலில்!",
+     "Is rain heading to your town? Live radar nowcast alerts now have their own channel."),
+    ("⛈️ ஒவ்வொரு மணி நேரமும் தென்னிந்திய ரேடார் படங்கள் + கனமழை உடனடி எச்சரிக்கை — இலவசம்.",
+     "Hourly South India radar cards + instant heavy-rain alerts, free."),
+    ("☔ குடை எடுக்கணுமா? அடுத்த 60 நிமிட மழை நிலவரம் மாவட்ட வாரியாக — Radar Nowcast Alerts சேனலில்.",
+     "Need an umbrella? District-wise rain for the next 60 minutes, on the Radar Nowcast Alerts channel."),
+]
+
+
+def _promo_caption(st: dict, peak: bool) -> str:
+    i = int(st.get("wa_promo_rot", 0)) % len(PROMO_TEXT)
+    st["wa_promo_rot"] = i + 1
+    ta, en = PROMO_TEXT[i]
+    lead = ("🚨 இப்போது கனமழை பதிவாகிறது! / Heavy rain on radar right now!\n\n" if peak else "")
+    return (f"{lead}{ta}\n{en}\n\n"
+            f"👉 Join *{config.WA_CHANNEL_NAME}*: {config.WA_CHANNEL_LINK}\n\n"
+            "இந்த முதன்மை சேனலில் வழக்கமான வானிலை அப்டேட்கள் மட்டும் தொடரும். "
+            "This main channel keeps the regular MasRainman updates — radar alerts live in the new channel. "
+            "Please share 🙏")
+
+
+def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
+    """Promotion agent. Queues ONE teaser (strongest card + join link) for the main
+    MasRainman WhatsApp channel, and once a day a join line in the Telegram channel.
+
+    Guardrails (fans complained about flooding, and WhatsApp bans spammy numbers):
+      * only the two configured channels -- never groups, chats or individuals
+      * at most one post per IST slot, one extra in a peak event, cap per day,
+        and a minimum gap between posts
+    Never raises."""
+    if not config.WA_PROMO_AUTO:
+        return
+    try:
+        now = datetime.now(timezone.utc)
+        ist = now.astimezone(IST)
+        day = ist.date().isoformat()
+        if st.get("wa_promo_day") != day:
+            st["wa_promo_day"], st["wa_promo_count"], st["wa_promo_slots"] = day, 0, []
+        prev = st.get("wa_promo_last_utc")
+        gap_ok = not prev or (now - datetime.fromisoformat(prev)).total_seconds() / 3600 >= config.WA_PROMO_GAP_H
+        slot = next((h for h in config.WA_PROMO_SLOTS_IST if h <= ist.hour < h + 2), None)
+        due_slot = slot is not None and slot not in st["wa_promo_slots"]
+        due_peak = peak and not st.get("wa_promo_peak_done")
+        if gap_ok and st["wa_promo_count"] < config.WA_PROMO_MAX_PER_DAY and (due_slot or due_peak):
+            q = config.WA_PROMO_QUEUE_DIR
+            q.mkdir(parents=True, exist_ok=True)
+            for old in q.iterdir():
+                old.unlink()
+            if cards:                                        # dry day -> text-only teaser
+                (q / "00.jpg").write_bytes(max(cards, key=lambda c: len(c[0]))[0])
+            (q / "00.txt").write_text(_promo_caption(st, peak), encoding="utf-8")
+            st["wa_promo_count"] += 1
+            st["wa_promo_last_utc"] = now.isoformat(timespec="seconds")
+            if due_slot:
+                st["wa_promo_slots"].append(slot)
+            else:
+                st["wa_promo_peak_done"] = True
+            print(f"[promo] main-channel teaser queued ({'peak' if not due_slot else f'slot {slot}:00 IST'}, "
+                  f"{st['wa_promo_count']}/{config.WA_PROMO_MAX_PER_DAY} today)")
+        if not peak:
+            st.pop("wa_promo_peak_done", None)       # re-arm for the next event
+
+        if (config.TELEGRAM_CHANNEL_ID and ist.hour == config.TG_PROMO_HOUR_IST
+                and st.get("tg_promo_day") != day):
+            tg.send_message(config.TELEGRAM_CHANNEL_ID,
+                            f"📲 WhatsApp-இல் ரேடார் எச்சரிக்கை வேண்டுமா? Get these radar alerts on WhatsApp too:\n"
+                            f"{config.WA_CHANNEL_NAME} 👉 {config.WA_CHANNEL_LINK}")
+            st["tg_promo_day"] = day
+            print("[promo] daily join line posted in the Telegram channel")
+    except Exception as e:
+        print(f"[promo] skipped: {e}")
 
 
 def _whatsapp_hourly(st: dict, cards: list[tuple[bytes, str]], peak_dbz: float = 0.0) -> None:
@@ -214,6 +290,9 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
 
     # 4) automatic hourly WhatsApp Channel post (with share-the-channel footer)
     _whatsapp_hourly(st, wide_cards, float(doc.get("peak_dbz") or 0))
+
+    # 5) promotion agent: join-link teaser for the main channel + Telegram
+    _promote(st, wide_cards, float(doc.get("peak_dbz") or 0) >= config.WA_CHANNEL_PEAK_DBZ)
 
     st["last_signature"] = sig
     _save(st)

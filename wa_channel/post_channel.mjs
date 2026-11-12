@@ -4,10 +4,15 @@
 //                                             it prints an 8-letter pairing code; without, a QR.
 //                                             Then prints WA_AUTH_B64 to paste into GitHub secrets.
 //   node post_channel.mjs getid <inviteLink> -> prints the channel ID (…@newsletter)
-//   node post_channel.mjs post               -> posts every card queued in ../output/wa_queue/
+//   node post_channel.mjs post               -> posts the queues below, one connection
 //
-// The radar cycle (masrainman/social.py) fills output/wa_queue/ once an hour with
-// NN.jpg + NN.txt (caption already includes the share-the-channel footer).
+//   ../output/wa_queue/        radar cards + alerts -> South India Radar Nowcast Alerts channel
+//                              (WA_ALERT_CHANNEL_ID secret, or resolved from WA_ALERT_CHANNEL_LINK)
+//   ../output/wa_promo_queue/  join-the-alerts-channel teaser -> main MasRainman channel
+//                              (WA_CHANNEL_ID secret = the main channel, as before)
+//
+// SAFETY: this script only ever sends to WhatsApp CHANNEL ids (…@newsletter) it was
+// configured with. It never messages groups, chats or individual numbers.
 
 import makeWASocket, { useMultiFileAuthState, DisconnectReason, Browsers } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode-terminal';
@@ -18,7 +23,9 @@ import { execSync } from 'child_process';
 
 const AUTH_DIR = process.env.WA_AUTH_DIR || './wa_auth';
 const QUEUE_DIR = process.env.WA_QUEUE_DIR || '../output/wa_queue';
-const DEFAULT_LINK = 'https://whatsapp.com/channel/0029VaBMeqH4Y9lg93fA8w3Y';
+const PROMO_DIR = process.env.WA_PROMO_QUEUE_DIR || '../output/wa_promo_queue';
+const ALERT_LINK = process.env.WA_ALERT_CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbE2C5F9RZAanCxEFv0o';
+const DEFAULT_LINK = ALERT_LINK;
 const mode = process.argv[2] || 'post';
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -56,13 +63,34 @@ async function connect() {
   });
 }
 
-function queued() {
-  if (!fs.existsSync(QUEUE_DIR)) return [];
-  return fs.readdirSync(QUEUE_DIR).filter(f => f.endsWith('.jpg')).sort()
-    .map(f => ({ img: path.join(QUEUE_DIR, f), txt: path.join(QUEUE_DIR, f.replace(/\.jpg$/, '.txt')) }));
+function queued(dir = QUEUE_DIR) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter(f => f.endsWith('.txt')).sort().map(f => {
+    const img = path.join(dir, f.replace(/\.txt$/, '.jpg'));
+    return { img: fs.existsSync(img) ? img : null, txt: path.join(dir, f) };
+  });
 }
 
-if (mode === 'post' && !queued().length) {
+const onlyChannel = jid => {
+  if (!/^\d+@newsletter$/.test(jid || '')) throw new Error(`Refusing to post: ${jid || '(empty)'} is not a WhatsApp channel id`);
+  return jid;
+};
+
+async function postQueue(sock, dir, jid, label) {
+  let bad = 0;
+  for (const { img, txt } of queued(dir)) {
+    try {
+      const caption = fs.readFileSync(txt, 'utf8');
+      await sock.sendMessage(jid, img ? { image: fs.readFileSync(img), caption } : { text: caption });
+      console.log(`✅ ${label}: posted`, path.basename(txt));
+      if (img) fs.rmSync(img); fs.rmSync(txt);
+      await wait(3000);
+    } catch (e) { bad++; console.log(`⚠️ ${label}: failed`, path.basename(txt), e.message); }
+  }
+  return bad;
+}
+
+if (mode === 'post' && !queued().length && !queued(PROMO_DIR).length) {
   console.log('Nothing queued for the WhatsApp channel this cycle.');
   process.exit(0);
 }
@@ -87,17 +115,20 @@ try {
     console.log('Channel:', meta?.name || meta?.thread_metadata?.name?.text || '');
     console.log('WA_CHANNEL_ID =', meta.id);
   } else {
-    const jid = process.env.WA_CHANNEL_ID;
-    if (!jid?.endsWith('@newsletter')) throw new Error('Set the WA_CHANNEL_ID secret (…@newsletter)');
-    for (const { img, txt } of queued()) {
-      try {
-        const caption = fs.existsSync(txt) ? fs.readFileSync(txt, 'utf8') : '';
-        await sock.sendMessage(jid, { image: fs.readFileSync(img), caption });
-        console.log('✅ Posted', path.basename(img));
-        fs.rmSync(img); if (fs.existsSync(txt)) fs.rmSync(txt);
-        await wait(3000);
-      } catch (e) { failed++; console.log('⚠️ Failed', path.basename(img), e.message); }
+    // 1) radar cards + alerts -> the alerts channel
+    if (queued().length) {
+      let alertJid = process.env.WA_ALERT_CHANNEL_ID;
+      if (!alertJid) {
+        const meta = await sock.newsletterMetadata('invite', ALERT_LINK.split('/').pop());
+        alertJid = meta?.id;
+        console.log('Alerts channel resolved from link:', meta?.thread_metadata?.name?.text || meta?.name || '');
+      }
+      if (alertJid === process.env.WA_CHANNEL_ID) throw new Error('Alerts channel = main channel; refusing (radar must not go to the main channel)');
+      failed += await postQueue(sock, QUEUE_DIR, onlyChannel(alertJid), 'Alerts channel');
     }
+    // 2) promo teaser -> the main MasRainman channel
+    if (queued(PROMO_DIR).length)
+      failed += await postQueue(sock, PROMO_DIR, onlyChannel(process.env.WA_CHANNEL_ID), 'Main channel promo');
   }
   await wait(5000); // flush rotated keys to disk before exit
 } finally {

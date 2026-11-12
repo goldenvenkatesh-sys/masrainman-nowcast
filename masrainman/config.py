@@ -64,8 +64,24 @@ WA_CHANNEL_EVERY_MIN = int(_env("WA_CHANNEL_EVERY_MIN", "60"))
 # (45 dBZ = heavy/intense rain), post every WA_CHANNEL_PEAK_EVERY_MIN instead.
 WA_CHANNEL_PEAK_DBZ = float(_env("WA_CHANNEL_PEAK_DBZ", "45"))
 WA_CHANNEL_PEAK_EVERY_MIN = int(_env("WA_CHANNEL_PEAK_EVERY_MIN", "30"))
-WA_CHANNEL_LINK = _env("WA_CHANNEL_LINK", "https://whatsapp.com/channel/0029VaBMeqH4Y9lg93fA8w3Y")
-WA_QUEUE_DIR = OUTPUT_DIR / "wa_queue"
+# 12 Nov 2026: radar cards + alerts moved OUT of the main MasRainman channel into
+# the dedicated "South India Radar Nowcast Alerts" channel (fans said the alerts
+# drowned the main channel's periodic updates).
+WA_CHANNEL_LINK = _env("WA_ALERT_CHANNEL_LINK", "https://whatsapp.com/channel/0029VbE2C5F9RZAanCxEFv0o")
+WA_CHANNEL_NAME = _env("WA_ALERT_CHANNEL_NAME", "South India Radar Nowcast Alerts")
+WA_QUEUE_DIR = OUTPUT_DIR / "wa_queue"            # -> alerts channel
+
+# Promotion agent: the main MasRainman channel gets NO radar cards any more, only a
+# short "join the alerts channel" post: at most once per slot (IST hours below)
+# plus one extra during a peak rain event, never more than WA_PROMO_MAX_PER_DAY.
+WA_MAIN_CHANNEL_LINK = _env("WA_MAIN_CHANNEL_LINK", "https://whatsapp.com/channel/0029VaBMeqH4Y9lg93fA8w3Y")
+WA_PROMO_AUTO = _flag("WA_PROMO_AUTO", True)
+WA_PROMO_SLOTS_IST = [int(x) for x in _env("WA_PROMO_SLOTS_IST", "8,18").split(",") if x.strip().isdigit()]
+WA_PROMO_MAX_PER_DAY = int(_env("WA_PROMO_MAX_PER_DAY", "3"))
+WA_PROMO_GAP_H = float(_env("WA_PROMO_GAP_H", "4"))
+WA_PROMO_QUEUE_DIR = OUTPUT_DIR / "wa_promo_queue"  # -> main channel
+# Telegram channel gets one daily "also on WhatsApp" line (IST hour)
+TG_PROMO_HOUR_IST = int(_env("TG_PROMO_HOUR_IST", "19"))
 
 # --- What to post -------------------------------------------------------------
 # Minimum dBZ for a place to be named (and for a region to get a card):
