@@ -111,7 +111,7 @@ def _promo_caption(st: dict, peak: bool) -> str:
 
 
 def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
-    """Promotion agent. Queues ONE teaser (strongest card + join link) for the main
+    """Promotion agent. Queues ONE teaser (QR invite poster + join link) for the main
     MasRainman WhatsApp channel, and once a day a join line in the Telegram channel.
 
     Guardrails (fans complained about flooding, and WhatsApp bans spammy numbers):
@@ -137,8 +137,11 @@ def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
             q.mkdir(parents=True, exist_ok=True)
             for old in q.iterdir():
                 old.unlink()
-            if cards:                                        # dry day -> text-only teaser
-                (q / "00.jpg").write_bytes(max(cards, key=lambda c: len(c[0]))[0])
+            # The QR invite poster, never a radar card: radar cards in the main
+            # channel looked like the radar posts had come back (13 Nov 2026).
+            poster = config.ROOT / "assets" / "alert_channel_promo.jpg"
+            if poster.exists():
+                (q / "00.jpg").write_bytes(poster.read_bytes())
             (q / "00.txt").write_text(_promo_caption(st, peak), encoding="utf-8")
             st["wa_promo_count"] += 1
             st["wa_promo_last_utc"] = now.isoformat(timespec="seconds")
