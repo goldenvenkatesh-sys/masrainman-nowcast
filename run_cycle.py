@@ -230,6 +230,72 @@ def build_items(engine):
     return items, doc
 
 
+def _satellite_log(engine):
+    """Keep the last 6 h of satellite-check results (state/satellite_log.json)
+    for the hourly false-echo audit (tools/false_echo_audit.py)."""
+    import time
+    import satellite_check as sc
+    path = config.STATE_DIR / "satellite_log.json"
+    try:
+        log = json.loads(path.read_text())
+    except Exception:
+        log = []
+    entry = {"t": time.time(), "used": bool(sc._cache.get("result", (None, {}))[1].get("used")),
+             "radars": {}}
+    for product, r in sc.REPORT.items():
+        radar = engine.PRODUCT_RADAR.get(product, product)
+        cur = entry["radars"].setdefault(radar, {"strong_px": 0, "strong_gone_px": 0})
+        cur["strong_px"] += r["strong_px"]
+        cur["strong_gone_px"] += r["strong_gone_px"]
+    log = [e for e in log if e.get("t", 0) > time.time() - 6 * 3600] + [entry]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(log))
+    if sc.AGREE.get("mask") is not None:
+        from PIL import Image
+        Image.fromarray(sc.AGREE["mask"].astype("uint8") * 255).convert("1").save(config.STATE_DIR / "radar_agree.png")
+        (config.STATE_DIR / "radar_agree.json").write_text(json.dumps(
+            {"t": time.time(), "bbox": list(sc.AGREE["bbox"]), "step": sc.AGREE["step"]}))
+
+
+def _satellite_notice(engine):
+    """(13 Nov 2026) Tell the admin's private bot chat when the satellite
+    check threw out a big false echo, so it's clear why a card didn't come.
+    At most once an hour per radar."""
+    import time
+    import satellite_check as sc
+    from masrainman.alerts import RADAR_NAMES
+    from masrainman.telegram import send_message
+    if not sc.REPORT or not config.TELEGRAM_ADMIN_CHAT_ID:
+        return
+    st_path = config.STATE_DIR / "satellite_notice.json"
+    try:
+        st = json.loads(st_path.read_text())
+    except Exception:
+        st = {}
+    by_radar = {}
+    for product, r in sc.REPORT.items():
+        radar = engine.PRODUCT_RADAR.get(product, product)
+        if r["strong_gone_px"] >= 300 and r["strong_gone_share"] >= 0.3:
+            by_radar[radar] = max(by_radar.get(radar, 0), r["strong_gone_share"])
+    now = time.time()
+    lines = []
+    for radar, share in by_radar.items():
+        if now - st.get(radar, 0) < 3600:
+            continue
+        en, ta = RADAR_NAMES.get(radar, (radar.title(), radar))
+        lines.append(f"• {ta} / {en}: {share:.0%} of its moderate+ echo had no cloud above it")
+        st[radar] = now
+    if not lines:
+        return
+    t = next(iter(sc.REPORT.values())).get("sat_time_utc", "")
+    msg = ("🛰️ Satellite check (Meteosat " + t.replace("T", " ").replace("Z", " UTC") + ")\n"
+           "Possible false radar echo (no cloud on satellite) -- removed from cards:\n" + "\n".join(lines))
+    send_message(config.TELEGRAM_ADMIN_CHAT_ID, msg)
+    st_path.parent.mkdir(parents=True, exist_ok=True)
+    st_path.write_text(json.dumps(st))
+    print("[cycle] " + msg.replace("\n", " | "))
+
+
 def main():
     if not config.APPROVALS_VIA_LISTENER:
         n = process_pending_updates()
@@ -242,6 +308,15 @@ def main():
         traceback.print_exc()
         print("[cycle] radar engine failed this cycle -- nothing new to post")
         return
+
+    try:
+        _satellite_notice(engine)
+    except Exception:
+        traceback.print_exc()
+    try:
+        _satellite_log(engine)
+    except Exception:
+        traceback.print_exc()
 
     items, doc = build_items(engine)
     publish_cycle(items, doc)
