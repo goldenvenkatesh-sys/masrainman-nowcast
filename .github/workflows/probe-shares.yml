@@ -1,0 +1,23 @@
+name: probe-shares (one-off, safe to delete)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      IG_TOKEN: ${{ secrets.IG_TOKEN }}
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+    steps:
+      - name: Latest posts on both Facebook Pages and Instagram (titles/times only)
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.parse
+          T = os.environ["IG_TOKEN"]
+          g = lambda p, **q: json.load(urllib.request.urlopen(f"https://graph.facebook.com/v21.0/{p}?" + urllib.parse.urlencode({**q, "access_token": q.pop("tok", T)}), timeout=30))
+          pages = {a["id"]: a for a in g("me/accounts", fields="id,name,access_token")["data"]}
+          for pid in ("102808714416567", "351578428034103"):
+              f = g(f"{pid}/posts", fields="created_time,message", limit=2, tok=pages[pid]["access_token"])
+              print("FB", pages[pid]["name"][:25], [(p["created_time"], (p.get("message") or "")[:70].replace("\n", " ")) for p in f.get("data", [])])
+          m = g(f"{os.environ['IG_USER_ID']}/media", fields="timestamp,caption", limit=3)
+          print("IG", [(x["timestamp"], (x.get("caption") or "")[:60].replace("\n", " ")) for x in m.get("data", [])])
+          PY
