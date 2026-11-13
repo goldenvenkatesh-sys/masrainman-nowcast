@@ -169,7 +169,9 @@ def _promote(st: dict, cards: list[tuple[bytes, str]], peak: bool) -> None:
                 print(f"[promo] Facebook join post failed: {e}")
 
         # Instagram: QR "scan to follow" poster every Wednesday evening
-        if ist.weekday() == 2 and 19 <= ist.hour < 21 and st.get("ig_promo_week") != week and promoter.instagram_enabled():
+        recent_rain_ig = st.get("ig_rain_last_utc") and (now - datetime.fromisoformat(st["ig_rain_last_utc"])).total_seconds() < 86400
+        if (ist.weekday() == 2 and 19 <= ist.hour < 21 and st.get("ig_promo_week") != week
+                and promoter.instagram_enabled() and not recent_rain_ig):
             try:
                 promoter.post_instagram(_promo_caption(st, False).replace("*", "")
                                         + "\n\n📲 Scan the QR or tap the link in our bio.\n" + promoter.TAGS)
@@ -354,16 +356,84 @@ def publish_cycle(items: list[tuple[str, "Path", str]], doc: dict) -> None:
 
     # 5) promotion agent
     st["last_signature"] = sig
-    _marketing(st, wide_cards, doc, posted=bool(wide_cards))
+    rain_keys = {it[0] for it in items if (it[3] if len(it) > 3 else "all") in ("all", "external")}
+    _marketing(st, wide_cards, doc, posted=bool(wide_cards), rain_keys=rain_keys)
 
 
-def _marketing(st: dict, wide_cards: list[tuple[bytes, str]], doc: dict, posted: bool) -> None:
+# Tamil Nadu regions whose rain triggers the Instagram poster (13 Nov 2026)
+IG_RAIN_REGIONS = ("chn", "tnni", "delta", "tnc", "tnw", "tns")
+IG_RAIN_MAX_PER_DAY = 3
+IG_RAIN_GAP_H = 4          # at least this long between Instagram rain posts
+IG_RAIN_REPEAT_H = 6       # a long rain event gets a fresh post after this long
+IG_RAIN_END_H = 2          # no TN rain for this long = the event is over
+IG_HOURS_IST = (6, 23)     # post only between 6 AM and 11 PM IST
+
+
+def _instagram_rain(st: dict, rain_keys: set, peak: bool) -> None:
+    """Instagram QR poster whenever rain shows up over Chennai / Tamil Nadu
+    (moderate+ rain on a region card, after the satellite false-echo check).
+    One post when a rain event starts, another if it is still raining
+    IG_RAIN_REPEAT_H later; max IG_RAIN_MAX_PER_DAY a day, never at night (a
+    night-time start posts at 6 AM if it is still raining). Never raises."""
+    if not promoter.instagram_enabled():
+        return
+    try:
+        from .regions import HASHTAGS, REGIONS
+        now = datetime.now(timezone.utc)
+        ist = now.astimezone(IST)
+        day = ist.date().isoformat()
+        tn = [k for k in IG_RAIN_REGIONS if k in rain_keys]
+        if tn:
+            st["ig_rain_seen_utc"] = now.isoformat(timespec="seconds")
+        else:
+            seen = st.get("ig_rain_seen_utc")
+            if st.get("ig_rain_active") and (not seen or (now - datetime.fromisoformat(seen)).total_seconds()
+                                             / 3600 >= IG_RAIN_END_H):
+                st["ig_rain_active"] = False          # event over -> next rain posts again
+            return
+        if st.get("ig_rain_day") != day:
+            st["ig_rain_day"], st["ig_rain_count"] = day, 0
+        last = st.get("ig_rain_last_utc")
+        since = (now - datetime.fromisoformat(last)).total_seconds() / 3600 if last else 1e9
+        due = (not st.get("ig_rain_active")) or since >= IG_RAIN_REPEAT_H
+        if not (due and since >= IG_RAIN_GAP_H and st["ig_rain_count"] < IG_RAIN_MAX_PER_DAY
+                and IG_HOURS_IST[0] <= ist.hour < IG_HOURS_IST[1]):
+            return
+        names = {k: (en, ta) for k, en, ta, *_ in REGIONS}
+        where_en = ", ".join(names[k][0] for k in tn)
+        where_ta = ", ".join(names[k][1] for k in tn)
+        head = ("🚨 இப்போது கனமழை! / Heavy rain on radar now!" if peak else "🌧️ இப்போது மழை! / Rain on radar now!")
+        tags = " ".join(dict.fromkeys(" ".join(HASHTAGS.get(k, "") for k in tn).split()))
+        caption = (f"{head}\n📍 {where_ta}\n📍 {where_en}\n\n"
+                   "உங்கள் ஊருக்கு மழை எப்போது வரும்? நேரடி ரேடார் மழை எச்சரிக்கை இலவசமாக WhatsApp-இல் பெறுங்கள்.\n"
+                   "Will the rain reach your town? Get free live radar rain alerts for Chennai, Tamil Nadu & "
+                   "South India on WhatsApp — every update in Tamil & English.\n\n"
+                   f"📲 Scan the QR or tap the link in our bio to follow {config.WA_CHANNEL_NAME}.\n"
+                   "Share with your family & friends 🙏\n\n" + (tags + " " if tags else "") + promoter.TAGS)
+        try:
+            promoter.post_instagram(caption[:2150])
+            promoter.log("Instagram", f"rain QR poster ({where_en})")
+            print(f"[promo] Instagram rain poster published ({where_en})")
+        except Exception as e:
+            promoter.log("Instagram", "rain QR poster", False, str(e))
+            print(f"[promo] Instagram rain poster failed: {e}")
+        # counts as an attempt either way, so a failure doesn't retry every 10 min
+        st["ig_rain_active"] = True
+        st["ig_rain_last_utc"] = now.isoformat(timespec="seconds")
+        st["ig_rain_count"] += 1
+    except Exception as e:
+        print(f"[promo] Instagram rain step error: {e}")
+
+
+def _marketing(st: dict, wide_cards: list[tuple[bytes, str]], doc: dict, posted: bool,
+               rain_keys: set | None = None) -> None:
     """Promotion agent, run every cycle (rain or not). Never raises."""
     try:
         peak = float(doc.get("peak_dbz") or 0) >= config.WA_CHANNEL_PEAK_DBZ
         promoter.keep_alive(st, posted)
         if promoter.branding_done():
             _promote(st, wide_cards, peak)
+            _instagram_rain(st, rain_keys or set(), peak)
         else:
             print("[promo] waiting: alerts channel logo/description not applied yet "
                   "(add the bot's number as channel admin) -- marketing starts after that")
