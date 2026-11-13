@@ -27,7 +27,8 @@ are built:
      colder than ~0 C nearby, while the real Thanjavur cell did.)
   3. NO DEEP CLOUD AND NO SATELLITE RAIN -> heavy echo capped to light.
      Echo of SAT_HEAVY_DBZ (40) or more needs EITHER a deep, cold cloud top
-     (IR grey >= SAT_DEEP_GREY, ~ -30 C) OR rain in EUMETSAT's H SAF H63
+     (IR grey >= SAT_DEEP_GREY, ~ -50 C; raised from ~ -30 C because thin
+     cirrus over Salem reached that) OR rain in EUMETSAT's H SAF H63
      satellite rain-rate product (msg_iodc:h63) within SAT_BUFFER_KM.
   4. WHOLE PATCH. An echo patch (connected moderate+ echo) is capped to
      light as a whole when most of its heavy core fails rule 3, or when
@@ -61,7 +62,7 @@ Settings (environment variables):
   SAT_WARM_GREY=60       IR grey below this counts as warm (rule 1)
   SAT_RAIN_GREY=110      IR grey at/above this = cloud top colder than ~ -20 C (rule 2)
   SAT_STRONG_DBZ=30      rule 2 applies to echo at/above this
-  SAT_DEEP_GREY=130      IR grey at/above this = deep cloud top, ~ -30 C (rule 3)
+  SAT_DEEP_GREY=170      IR grey at/above this = thunderstorm top, ~ -50 C (rules 3-4)
   SAT_HEAVY_DBZ=40       rules 3-4 apply to echo at/above this
   SAT_PATCH_BAD=0.6      rule 4: patch capped when this share of its heavy core fails
   SAT_PATCH_MIN_BACKED=0.1  rule 4: patch capped when less than this share has deep cloud / sat rain
@@ -87,7 +88,7 @@ MAX_AGE_MIN = float(os.environ.get("SAT_MAX_AGE_MIN", "75"))
 WARM_GREY = int(os.environ.get("SAT_WARM_GREY", "60"))
 RAIN_GREY = int(os.environ.get("SAT_RAIN_GREY", "110"))
 STRONG_DBZ = float(os.environ.get("SAT_STRONG_DBZ", "30"))
-DEEP_GREY = int(os.environ.get("SAT_DEEP_GREY", "130"))
+DEEP_GREY = int(os.environ.get("SAT_DEEP_GREY", "170"))
 HEAVY_DBZ = float(os.environ.get("SAT_HEAVY_DBZ", "40"))
 PATCH_BAD = float(os.environ.get("SAT_PATCH_BAD", "0.6"))
 PATCH_MIN_HEAVY_PX = 10
