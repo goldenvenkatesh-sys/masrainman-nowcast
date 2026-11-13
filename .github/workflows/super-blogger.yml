@@ -21,6 +21,10 @@ on:
         description: "Test only: don't edit or post anything"
         type: boolean
         default: false
+      quick:
+        description: "Morning quick check (only look for the new post)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -81,7 +85,7 @@ jobs:
           FORCE_REPORT: ${{ inputs.force_report && '1' || '' }}
           SB_UNDO: ${{ inputs.undo }}
           SB_DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
-          SB_QUICK: ${{ github.event.schedule == '*/20 0-5 * * *' && '1' || '' }}
+          SB_QUICK: ${{ (github.event.schedule == '*/20 0-5 * * *' || inputs.quick) && '1' || '' }}
         run: python3 superblogger/super_blogger.py
 
       - name: Save memory

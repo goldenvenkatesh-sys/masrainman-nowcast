@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write      # to start Super Blogger / the false-echo audit when due (see last step)
 
 jobs:
   cycle:
@@ -212,3 +213,31 @@ jobs:
             sleep 5
           done
           echo "push failed after 3 tries (next run will retry)"
+
+      # GitHub's own scheduler often skips this repo's schedules; this workflow is
+      # started reliably by cron-job.org, so it also starts the other agents when due.
+      - name: Start Super Blogger / false-echo audit when due
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          R="${{ github.repository }}"
+          now=$(date -u +%s)
+          last() {  # seconds since the newest run of a workflow (any trigger), big if none
+            t=$(gh run list -R "$R" -w "$1" -L 1 --json createdAt --jq '.[0].createdAt' 2>/dev/null)
+            [ -n "$t" ] && echo $(( now - $(date -u -d "$t" +%s) )) || echo 999999
+          }
+          ist_min=$(( ( $(date -u +%H) * 60 + $(date -u +%M) + 330 ) % 1440 ))
+          sb=$(last super-blogger.yml)
+          if [ "$sb" -ge 7000 ]; then
+            gh workflow run super-blogger.yml -R "$R" --ref main && echo "Super Blogger: full run started"
+          elif [ "$ist_min" -ge 330 ] && [ "$ist_min" -le 670 ] && [ "$sb" -ge 1100 ]; then
+            gh workflow run super-blogger.yml -R "$R" --ref main -f quick=true && echo "Super Blogger: morning quick check started"
+          else
+            echo "Super Blogger: not due (last run $((sb/60)) min ago)"
+          fi
+          fa=$(last false-echo-audit.yml)
+          if [ "$fa" -ge 3400 ]; then
+            gh workflow run false-echo-audit.yml -R "$R" --ref main && echo "False-echo audit started"
+          fi
