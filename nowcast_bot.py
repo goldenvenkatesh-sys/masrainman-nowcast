@@ -22,6 +22,11 @@ from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 from scipy import ndimage
 import cv2
 
+try:   # satellite cross-check (13 Nov 2026) -- see satellite_check.py; optional
+    import satellite_check
+except Exception:
+    satellite_check = None
+
 try:
     import pytesseract
     pytesseract.get_tesseract_version()  # the tesseract binary must be installed too
@@ -4062,6 +4067,18 @@ def sample_cell_velocity_from_flow(flow: np.ndarray, cell: Cell, dt_minutes: flo
     return (round(speed_kmh, 1), round(bearing, 0))
 
 
+def satellite_screen(dbz: np.ndarray, product: str) -> np.ndarray:
+    """Drop / tone down echo the satellite doesn't back up (false echoes such
+    as anomalous propagation). Never allowed to break a cycle."""
+    if satellite_check is None or dbz is None:
+        return dbz
+    try:
+        return satellite_check.screen(dbz, product, pixel_to_latlon, PRODUCTS[product]["plot_bbox"])
+    except Exception as e:
+        print(f"[satellite] {product}: check failed, using radar as is: {e!r}")
+        return dbz
+
+
 def poll_and_decode(product: str, state: dict, prev_cells: dict, prev_obs_time: dict,
                      last_obs_time_seen: dict) -> np.ndarray | None:
     """One polling cycle for `product`, adapted from the notebook's
@@ -4114,6 +4131,7 @@ def poll_and_decode(product: str, state: dict, prev_cells: dict, prev_obs_time: 
         # counts as fresh, so those cells would otherwise stay on the map.
         prev_cells[product] = []
         return None
+    dbz = satellite_screen(dbz, product)
 
     obs_time = extract_observation_time(img, product)
     last_obs_time_seen[product] = obs_time
@@ -5155,6 +5173,8 @@ def run_pipeline() -> None:
                     fallback_dbz = decode_reflectivity(img, product, lut)
                     if frame_looks_implausible(fallback_dbz, product):
                         fallback_dbz = None
+                    else:
+                        fallback_dbz = satellite_screen(fallback_dbz, product)
             if fallback_dbz is not None:
                 print(f"[poll] {product}: fetch failed, falling back to last archived frame {existing[-1]}")
                 _last_dbz[product] = fallback_dbz
