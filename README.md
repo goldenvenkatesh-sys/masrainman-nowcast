@@ -13,8 +13,6 @@ Every 10 minutes this repo pulls the latest IMD Doppler radar images (Chennai NI
 * an automatic post to your **Telegram channel**
 * a private **Telegram approval card** with **✅ Yes / ❌ No** buttons — tap Yes and the same card + caption is posted to your **Facebook Page** and **WhatsApp Channel**
 
-The radar engine (`nowcast_bot.py`) is forked from [Chennai-Rains/IMD_Radar_Updates](https://github.com/Chennai-Rains/IMD_Radar_Updates); everything in `masrainman/` and `run_cycle.py` is the MasRainman layer on top.
-
 ```
 IMD radar GIFs ──► nowcast_bot.py ──► output/nowcast_bot.json + grid
                                          │
