@@ -5,7 +5,8 @@ name: Super Blogger (blog SEO + traffic + security, every 2 h)
 # MAS Rainman Friend's security watch runs inside it (Friend's own schedule is off).
 on:
   schedule:
-    - cron: "13 */2 * * *"   # every 2 hours (GitHub may start a few minutes late)
+    - cron: "13 */2 * * *"   # every 2 hours: full run (GitHub may start a few minutes late)
+    - cron: "*/20 0-5 * * *" # 5:30-11:10 AM IST every 20 min: quick check for the morning post only
   workflow_dispatch:
     inputs:
       force_report:
@@ -80,6 +81,7 @@ jobs:
           FORCE_REPORT: ${{ inputs.force_report && '1' || '' }}
           SB_UNDO: ${{ inputs.undo }}
           SB_DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+          SB_QUICK: ${{ github.event.schedule == '*/20 0-5 * * *' && '1' || '' }}
         run: python3 superblogger/super_blogger.py
 
       - name: Save memory

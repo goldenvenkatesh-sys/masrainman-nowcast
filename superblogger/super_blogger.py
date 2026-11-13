@@ -66,6 +66,11 @@ GH_REPO = os.environ.get("GITHUB_REPOSITORY", "goldenvenkatesh-sys/masrainman-no
 UNDO = os.environ.get("SB_UNDO", "").strip()
 FORCE_REPORT = os.environ.get("FORCE_REPORT", "") == "1"
 DRY = os.environ.get("SB_DRY_RUN", "") == "1"
+# Morning quick check (every 20 min, 5:30-11:10 AM IST): the owner posts ONE inference
+# every morning; polish it for SEO and start promoting as soon as it's up. Skips the
+# security watch / performance / reports (those run every 2 h) to stay light.
+QUICK = os.environ.get("SB_QUICK", "") == "1"
+SETTLE_MIN = 10        # wait this long after publishing, so the owner's own last fixes are in
 SHARE_MAX_AGE_H = 18          # only posts newer than this are shared as "new"
 E = html.escape
 
@@ -262,6 +267,7 @@ def optimize(g, bid, post, posts, seo, pages):
         return changes, backup
     res = g.req("PATCH", f"{BLOGGER}/blogs/{bid}/posts/{p['id']}", json=body)
     backup["after_updated"] = res.get("updated", "")
+    post["title"] = title                    # shares use the polished title
     return changes, backup
 
 
@@ -523,11 +529,23 @@ def main():
     st.setdefault("shared", [])
     did, warn = [], []
 
-    # 0) security + trends (MAS Rainman Friend, merged)
-    try:
+    posts_peek = None
+    if QUICK:
+        try:
+            posts_peek = friend.fetch_posts(3)
+        except Exception as e:
+            log(f"quick check: feed not readable ({e})")
+            return
+        if all(p["url"] in st.get("shared", []) or p["url"] in st.get("optimized", {}) for p in posts_peek):
+            log("quick check: no new post")
+            return
+
+    # 0) security + trends (MAS Rainman Friend, merged) -- full runs only
+    if not QUICK:
+      try:
         friend.STATE_FILE = str(HERE / "friend_state.json")
         friend.main()
-    except Exception as e:
+      except Exception as e:
         warn.append(f"security watch error: {e}")
 
     if UNDO:
@@ -540,7 +558,7 @@ def main():
         return
 
     posts = friend.fetch_posts(8)
-    trends = [x[0] for x in (friend.google_trends_in() or [])]
+    trends = [] if QUICK else [x[0] for x in (friend.google_trends_in() or [])]
     bid = pages = None
     if g.ok:
         try:
@@ -556,6 +574,14 @@ def main():
     for p in posts[:3]:
         url = p["url"]
         if not url:
+            continue
+        try:
+            pub_age_min = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(
+                p["published"].replace("Z", "+00:00"))).total_seconds() / 60
+        except Exception:
+            pub_age_min = 999
+        if pub_age_min < SETTLE_MIN:
+            log(f"new post {url} is only {pub_age_min:.0f} min old -- polishing it on the next check")
             continue
         rec = st["optimized"].get(url, {})
         user_edited = rec.get("after_updated") and p["updated"] > rec["after_updated"] and not rec.get("skip")
@@ -601,6 +627,15 @@ def main():
     st["optimized"] = {u: st["optimized"][u] for u in keep}
     for u in keep[:-15]:
         st["optimized"][u].pop("backup", None)
+
+    if QUICK:      # morning quick check: tell the owner what was done, nothing else
+        if did or warn:
+            tg_admin("\n".join([f"🚀 <b>Super Blogger</b> · {t.strftime('%I:%M %p')} · this morning's post"] + did
+                                + (["⚠️ " + E(" | ".join(warn))[:600]] if warn else [])))
+        for d in did + warn:
+            log(re.sub(r"<[^>]+>", "", html.unescape(d)))
+        save_state(st)
+        return
 
     # performance
     v = ga = gs = None
