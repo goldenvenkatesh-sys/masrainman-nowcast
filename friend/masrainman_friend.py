@@ -469,13 +469,24 @@ def main():
     up, home = False, ""
     try:
         r = get(BLOG + "/")
-        up = r.status_code == 200
-        home = r.text
-        final = r.url
-        if domain_of(final) not in ("masrainman.blogspot.com", "www.masrainman.blogspot.com"):
-            alerts.append(f"Homepage redirects to {final}")
-        if not up:
-            alerts.append(f"Homepage returned HTTP {r.status_code}")
+        for wait in (20, 60):          # Google rate-limits busy GitHub runners (HTTP 429 /sorry page)
+            if not (r.status_code == 429 or "google.com/sorry" in r.url):
+                break
+            time.sleep(wait)
+            r = get(BLOG + "/")
+        if r.status_code == 429 or "google.com/sorry" in r.url:
+            # Not the blog's fault and not an attack: Google throttled this checker. Skip, check next run.
+            notes.append("Google rate-limited this check (HTTP 429) — homepage not checked this time")
+            print("homepage check skipped: rate-limited by Google (429)")
+            up = None
+        else:
+            up = r.status_code == 200
+            home = r.text if up else ""
+            final = r.url
+            if domain_of(final) not in ("masrainman.blogspot.com", "www.masrainman.blogspot.com"):
+                alerts.append(f"Homepage redirects to {final}")
+            if not up:
+                alerts.append(f"Homepage returned HTTP {r.status_code}")
     except Exception as e:
         alerts.append(f"Blog not reachable ({e.__class__.__name__})")
 
@@ -609,7 +620,7 @@ def main():
             if len(p["labels"]) > 6:
                 todo.append(f"{len(p['labels'])} labels (keep 3–5): {p['title'][:50]}")
         runs_today = [r for r in st["runs"] if r.get("t", "").startswith(today)]
-        down = sum(1 for r in runs_today if not r.get("up"))
+        down = sum(1 for r in runs_today if r.get("up") is False)
         lines = ["📊 <b>MAS Rainman Friend – daily summary</b> " + t.strftime("%d %b"),
                  f"Checks today: {len(runs_today) + 1} · site down: {down} · new alerts: {sum(r.get('alerts', 0) for r in runs_today) + len(new_alerts)}",
                  f"Safe Browsing: {e(sb_text)}",

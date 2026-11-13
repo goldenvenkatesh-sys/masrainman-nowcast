@@ -695,6 +695,8 @@ def main():
                             f"edit new posts for SEO, share them everywhere and chase <b>{TARGET:,} views a day</b>. "
                             "MAS Rainman Friend's security watch now runs inside me.")
         tg_admin("\n".join(lines))
+    for d in did + warn:
+        log(re.sub(r"<[^>]+>", "", html.unescape(d)))
     st["last_run"] = t.isoformat(timespec="minutes")
     save_state(st)
     log(f"done: did={len(did)} warn={len(warn)} views={v and v['today']} google={'ok' if g.ok else 'no'}")
