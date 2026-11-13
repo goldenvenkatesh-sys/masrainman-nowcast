@@ -591,7 +591,8 @@ def main():
             warn.append(f"SEO analysis failed for {url}: {e}")
             continue
         # SEO edits
-        if (not rec or user_edited) and not rec.get("skip"):
+        # pack_only = seen before Google sign-in was set up -> polish it now that we can
+        if (not rec or user_edited or (rec.get("pack_only") and bid)) and not rec.get("skip"):
             if bid:
                 try:
                     changes, backup = optimize(g, bid, p, posts, seo, pages or [])
