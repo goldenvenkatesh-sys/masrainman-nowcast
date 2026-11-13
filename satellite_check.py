@@ -142,6 +142,7 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox) -> np.ndar
         return dbz
     echo = ~np.isnan(dbz)
     if not echo.any():
+        print(f"[satellite] {product}: no echo -- nothing to check")
         return dbz
     masks, info = clear_sky_mask()
     if masks is None:
@@ -158,6 +159,7 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox) -> np.ndar
     cap[inb] = masks["no_cold"][r[inb], c[inb]] & (vals[inb] >= STRONG_DBZ)
     cap &= ~drop
     if not (drop.any() or cap.any()):
+        print(f"[satellite] {product}: all {echo.sum()} echo px backed by satellite cloud -- kept")
         return dbz
     out = dbz.copy()
     out[ys[drop], xs[drop]] = np.nan
