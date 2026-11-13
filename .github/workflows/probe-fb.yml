@@ -1,0 +1,29 @@
+name: probe-fb (one-off, safe to delete)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      IG_TOKEN: ${{ secrets.IG_TOKEN }}
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+    steps:
+      - name: What can the Instagram token do on Facebook? (prints names/ids/permissions only, never the token)
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.parse
+          T = os.environ["IG_TOKEN"]; V = "v21.0"
+          def get(path, **p):
+              p["access_token"] = T
+              try:
+                  return json.load(urllib.request.urlopen(f"https://graph.facebook.com/{V}/{path}?" + urllib.parse.urlencode(p), timeout=30))
+              except urllib.error.HTTPError as e:
+                  return {"error": json.load(e).get("error", {}).get("message")}
+          print("me:", get("me", fields="id,name"))
+          dbg = get("debug_token", input_token=T)
+          d = dbg.get("data", {})
+          print("token type:", d.get("type"), "| valid:", d.get("is_valid"), "| expires:", d.get("expires_at"), "| scopes:", d.get("scopes"), dbg.get("error", ""))
+          acc = get("me/accounts", fields="id,name,tasks")
+          print("pages:", [(a.get("id"), a.get("name"), a.get("tasks")) for a in acc.get("data", [])], acc.get("error", ""))
+          print("ig user -> page:", get(os.environ["IG_USER_ID"], fields="username"))
+          PY
