@@ -1,8 +1,8 @@
-name: MAS Rainman Friend (blog watch + SEO)
+name: MAS Rainman Friend (retired - now inside Super Blogger)
 
+# Merged into Super Blogger on 13 Nov 2026 (its security watch runs inside
+# .github/workflows/super-blogger.yml). Schedule switched off; manual run still possible.
 on:
-  schedule:
-    - cron: "13 */2 * * *"   # every 2 hours (GitHub may start a few minutes late)
   workflow_dispatch:
     inputs:
       force_report:

@@ -29,6 +29,10 @@ STATE_FILE = os.environ.get("FRIEND_STATE", "state.json")
 TG_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TG_CHAT = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "")
 FORCE_REPORT = os.environ.get("FORCE_REPORT", "") == "1"
+# Run inside Super Blogger (13 Nov 2026): keep the security watch + trend alerts,
+# leave SEO packs and the daily summary to Super Blogger (it applies the edits itself).
+SB_MODE = os.environ.get("SUPER_BLOGGER", "") == "1"
+NAME = "Super Blogger" if SB_MODE else "MAS Rainman Friend"
 UA = {"User-Agent": "Mozilla/5.0 (MAS Rainman Friend site monitor; owner's own blog)"}
 
 # Domains a Blogger weather blog is expected to load or link to.
@@ -275,6 +279,12 @@ def is_caps(t):
 
 
 def seo_pack(post, trends):
+    d = seo_data(post, trends)
+    return d["pack"], d["issues"]
+
+
+def seo_data(post, trends):
+    """Everything the SEO pack knows, as data (used by Super Blogger to edit the post)."""
     pub = post["published"][:10]
     try:
         d = dt.date.fromisoformat(pub)
@@ -389,7 +399,11 @@ def seo_pack(post, trends):
     lines += [f"\n<b>Share – English</b> (WhatsApp/Telegram/FB/X):\n<code>{e(cap_en)}</code>",
               f"\n<b>Share – Tamil:</b>\n<code>{e(cap_ta)}</code>",
               f"\n<b>World reach line</b> (add to post's first paragraph):\n<code>{e(world)}</code>"]
-    return "\n".join(lines), issues
+    return {"pack": "\n".join(lines), "issues": issues, "title": t1, "title_alt": t2, "title_ta": ta_title,
+            "description": desc, "labels": labels, "hashtags": hashtags, "alt": (alts[0].split(": ", 1)[1].strip('"') if alts else
+            f"{main_sys} {('– ' + ', '.join(places[:3])) if places else ''} {date_s} – MASRainman"),
+            "cap_en": cap_en, "cap_ta": cap_ta, "world": world, "places": places, "main_sys": main_sys,
+            "lead": lead, "date_s": date_s, "words": words}
 
 
 # ---------------------------------------------------------------- trends / safe browsing
@@ -528,7 +542,7 @@ def main():
     packs = []
     if first_run:
         st["packs_sent"] = [p["url"] for p in posts[1:]]  # only the newest post gets a pack now
-    for p in posts[:3]:
+    for p in ([] if SB_MODE else posts[:3]):
         if p["url"] and p["url"] not in st["packs_sent"]:
             try:
                 pack, _ = seo_pack(p, trend_terms[:2])
@@ -552,14 +566,14 @@ def main():
     st["alerts_sent"] = (st["alerts_sent"] + new_alerts)[-50:]
     e = html.escape
     if new_alerts:
-        msg = ["⚠️ <b>MAS Rainman Friend – security alert</b> " + t.strftime("%d %b %H:%M IST")]
+        msg = [f"⚠️ <b>{NAME} – security alert</b> " + t.strftime("%d %b %H:%M IST")]
         msg += ["• " + e(a) for a in new_alerts]
         msg.append("\n<b>What to do:</b> Blogger → Theme → Edit HTML / Layout: remove any gadget or code you did not add. "
                    "Change your Google password, turn on 2-Step Verification, and check Settings → Permissions for unknown authors. "
                    "Search Console → Security issues shows Google's own findings.")
         tg_send("\n".join(msg))
 
-    if first_run:
+    if first_run and not SB_MODE:
         msg = ["🤝 <b>MAS Rainman Friend is now watching your blog</b> (" + t.strftime("%d %b %H:%M IST") + ")",
                f"Site: {'UP ✓' if up else 'DOWN ✗'} · Safe Browsing: {e(sb_text)}",
                f"Scripts/iframes loaded from: {e(', '.join(st.get('baseline', {}).get('ext', [])) or 'none')}",
@@ -584,7 +598,7 @@ def main():
 
     # daily summary after 9 pm IST
     today = t.date().isoformat()
-    if (t.hour >= 21 and st.get("last_daily") != today) or FORCE_REPORT:
+    if not SB_MODE and ((t.hour >= 21 and st.get("last_daily") != today) or FORCE_REPORT):
         st["last_daily"] = today
         todo = []
         for p in posts[:7]:

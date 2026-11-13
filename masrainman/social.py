@@ -428,6 +428,28 @@ def _instagram_rain(st: dict, rain_keys: set, peak: bool) -> None:
         print(f"[promo] Instagram rain step error: {e}")
 
 
+def _blog_post_pickup() -> None:
+    """Super Blogger (superblogger/) hands each new blog post to the radar bot
+    for the MAIN WhatsApp channel via state/wa_blog_queue/ (the bot owns the
+    WhatsApp session). Move it into the main-channel queue. Never raises."""
+    try:
+        src = config.ROOT / "state" / "wa_blog_queue"
+        txt = src / "00.txt"
+        if not txt.exists():
+            return
+        q = config.WA_PROMO_QUEUE_DIR
+        q.mkdir(parents=True, exist_ok=True)
+        if (src / "00.jpg").exists():
+            (q / "50_blog.jpg").write_bytes((src / "00.jpg").read_bytes())
+            (src / "00.jpg").unlink()
+        (q / "50_blog.txt").write_text(txt.read_text(encoding="utf-8"), encoding="utf-8")
+        txt.unlink()
+        promoter.log("WhatsApp main channel", "new blog post (Super Blogger)")
+        print("[promo] Super Blogger blog post queued for the main WhatsApp channel")
+    except Exception as e:
+        print(f"[promo] blog post pickup failed: {e}")
+
+
 def _marketing(st: dict, wide_cards: list[tuple[bytes, str]], doc: dict, posted: bool,
                rain_keys: set | None = None) -> None:
     """Promotion agent, run every cycle (rain or not). Never raises."""
@@ -440,6 +462,7 @@ def _marketing(st: dict, wide_cards: list[tuple[bytes, str]], doc: dict, posted:
         else:
             print("[promo] waiting: alerts channel logo/description not applied yet "
                   "(add the bot's number as channel admin) -- marketing starts after that")
+        _blog_post_pickup()
         promoter.weekly_report(st)
     except Exception as e:
         print(f"[promo] agent error: {e}")

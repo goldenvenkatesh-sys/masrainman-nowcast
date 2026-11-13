@@ -1,0 +1,105 @@
+name: Super Blogger (blog SEO + traffic + security, every 2 h)
+
+# The MasRainman blog agent. Runs on its own every 2 hours -- no PC or Claude needed.
+# Target: 5,000 views/day on masrainman.blogspot.com. See superblogger/super_blogger.py.
+# MAS Rainman Friend's security watch runs inside it (Friend's own schedule is off).
+on:
+  schedule:
+    - cron: "13 */2 * * *"   # every 2 hours (GitHub may start a few minutes late)
+  workflow_dispatch:
+    inputs:
+      force_report:
+        description: "Send the full daily report now"
+        type: boolean
+        default: false
+      undo:
+        description: "Undo Super Blogger's edit on this post URL (leave empty normally)"
+        type: string
+        default: ""
+      dry_run:
+        description: "Test only: don't edit or post anything"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: super-blogger
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Get Super Blogger's code only (repo is large)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            friend
+            superblogger
+            masrainman
+          filter: blob:none
+
+      - name: Install requests
+        run: pip install -q requests
+
+      - name: Load memory (superblogger-state branch; first time, take over Friend's memory)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          R="repos/${{ github.repository }}/contents"
+          gh api "$R/sb_state.json?ref=superblogger-state" -H "Accept: application/vnd.github.raw" > superblogger/sb_state.json 2>/dev/null || echo '{}' > superblogger/sb_state.json
+          gh api "$R/friend_state.json?ref=superblogger-state" -H "Accept: application/vnd.github.raw" > superblogger/friend_state.json 2>/dev/null \
+            || gh api "$R/state.json?ref=friend-state" -H "Accept: application/vnd.github.raw" > superblogger/friend_state.json 2>/dev/null \
+            || echo '{}' > superblogger/friend_state.json
+          grep -q '^{' superblogger/sb_state.json || echo '{}' > superblogger/sb_state.json
+          grep -q '^{' superblogger/friend_state.json || echo '{}' > superblogger/friend_state.json
+
+      - name: Run Super Blogger
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          BING_API_KEY: ${{ secrets.BING_API_KEY }}
+          WA_ALERT_CHANNEL_LINK: ${{ vars.WA_ALERT_CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbE2C5F9RZAanCxEFv0o' }}
+          SB_TARGET_VIEWS: ${{ vars.SB_TARGET_VIEWS || '5000' }}
+          GH_TOKEN: ${{ github.token }}
+          SB_STATE: superblogger/sb_state.json
+          FRIEND_STATE: superblogger/friend_state.json
+          SUPER_BLOGGER: "1"
+          FORCE_REPORT: ${{ inputs.force_report && '1' || '' }}
+          SB_UNDO: ${{ inputs.undo }}
+          SB_DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: python3 superblogger/super_blogger.py
+
+      - name: Save memory
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          R="repos/${{ github.repository }}"
+          gh api "$R/git/ref/heads/superblogger-state" >/dev/null 2>&1 || \
+            gh api -X POST "$R/git/refs" -f ref=refs/heads/superblogger-state -f sha="$(gh api $R/git/ref/heads/main --jq .object.sha)" >/dev/null
+          for f in sb_state.json friend_state.json; do
+            [ -s "superblogger/$f" ] || continue
+            SHA=$(gh api "$R/contents/$f?ref=superblogger-state" --jq .sha 2>/dev/null || true)
+            F="$f" SHA="$SHA" python3 - <<'PY' > body.json
+          import base64, json, os
+          b = {"message": "super blogger state", "branch": "superblogger-state",
+               "content": base64.b64encode(open("superblogger/" + os.environ["F"], "rb").read()).decode()}
+          if os.environ.get("SHA"): b["sha"] = os.environ["SHA"]
+          print(json.dumps(b))
+          PY
+            gh api -X PUT "$R/contents/$f" --input body.json --jq .commit.sha
+          done
