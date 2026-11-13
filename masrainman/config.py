@@ -49,6 +49,10 @@ APPROVAL_TTL_MIN = int(_env("APPROVAL_TTL_MIN", "45"))
 # --- Facebook Page (Graph API) ----------------------------------------------
 FB_PAGE_ID = _env("FB_PAGE_ID")
 FB_PAGE_TOKEN = _env("FB_PAGE_TOKEN")          # long-lived PAGE access token
+# When FB_PAGE_ID / FB_PAGE_TOKEN are not set, the Instagram token (a Meta USER
+# token with pages_manage_posts) is used to fetch these Pages' own tokens at
+# run time (13 Nov 2026): Tamil Nadu page + Kerala page.
+FB_PAGE_IDS = [x.strip() for x in _env("FB_PAGE_IDS", "102808714416567,351578428034103").split(",") if x.strip()]
 FB_GRAPH_VERSION = _env("FB_GRAPH_VERSION", "v23.0")
 
 # --- WhatsApp Channel (via Whapi.Cloud gateway) -------------------------------

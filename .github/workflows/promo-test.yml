@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       outlet:
-        description: "instagram, x or xtap"
+        description: "instagram, facebook, x or xtap"
         required: true
         default: instagram
 
@@ -43,6 +43,14 @@ jobs:
               assert promoter.instagram_enabled(), "IG_USER_ID / IG_TOKEN secrets missing"
               print("Instagram post id:", promoter.post_instagram(caption))
               promoter.log("Instagram", "QR poster post (test)")
+          elif outlet == "facebook":
+              from masrainman import config, publishers
+              assert publishers.facebook_enabled(), "no Facebook Page token (FB_PAGE_* or IG_TOKEN)"
+              fb_caption = caption.replace("Scan the QR to follow South India Radar Nowcast Alerts, or use the link in our bio.",
+                                           "Scan the QR or tap to follow South India Radar Nowcast Alerts: " + config.WA_CHANNEL_LINK)
+              print("Facebook pages:", [n for _, _, n in publishers._fb_pages()])
+              print("Facebook post ids:", publishers.post_facebook(open("assets/alert_channel_promo.jpg", "rb").read(), fb_caption))
+              promoter.log("Facebook Page", "join post (QR poster, both pages)")
           elif outlet == "xtap":
               import urllib.parse
               from masrainman import config, telegram as tg
