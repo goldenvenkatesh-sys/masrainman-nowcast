@@ -94,6 +94,7 @@ PATCH_BAD = float(os.environ.get("SAT_PATCH_BAD", "0.6"))
 PATCH_MIN_HEAVY_PX = 10
 PATCH_MIN_BACKED = float(os.environ.get("SAT_PATCH_MIN_BACKED", "0.1"))
 PATCH_MIN_PX = 20
+MOD_LO = STRONG_DBZ - 0.5      # the grid export rounds: 29.7 dBZ becomes 30 = moderate
 CONFIRM_KM = float(os.environ.get("SAT_CONFIRM_KM", "8"))
 
 CLEAR_COLOURS = ((0, 192, 0), (0, 0, 255))   # clear land, clear sea in EUMETSAT's CLM style
@@ -211,7 +212,7 @@ def screen_all(dbz_by_product: dict, pixel_to_latlon, plot_bbox_of, radar_of) ->
             continue
         idx[p] = _sat_index(d, p, pixel_to_latlon, plot_bbox_of(p), shape)
         echo, ys, xs, r, c, inb = idx[p]
-        strong = inb & (d[ys, xs] >= STRONG_DBZ)
+        strong = inb & (d[ys, xs] >= MOD_LO)
         m = per_radar.setdefault(radar_of(p), np.zeros(shape, bool))
         m[r[strong], c[strong]] = True
     rc = max(1, int(round(CONFIRM_KM / (STEP * 111.0))))
@@ -251,7 +252,7 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox, confirm=No
     cap = np.zeros(ys.shape, bool)
     drop[inb] = masks["clear_far"][r[inb], c[inb]]
     drop &= ~ok2
-    cap[inb] = masks["no_cold"][r[inb], c[inb]] & (vals[inb] >= STRONG_DBZ)
+    cap[inb] = masks["no_cold"][r[inb], c[inb]] & (vals[inb] >= MOD_LO)
     no_deep = np.zeros(ys.shape, bool)          # echo the satellite can't see is never judged
     no_deep[inb] = masks["no_deep"][r[inb], c[inb]]
     no_deep &= ~ok2
@@ -259,7 +260,7 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox, confirm=No
     cap |= heavy_bad
     # rule 4: echo patches (connected moderate+ echo)
     strong_img = np.zeros(dbz.shape, bool)
-    strong_img[ys[vals >= STRONG_DBZ], xs[vals >= STRONG_DBZ]] = True
+    strong_img[ys[vals >= MOD_LO], xs[vals >= MOD_LO]] = True
     strong_img[ys[drop], xs[drop]] = False
     lab, n = ndimage.label(ndimage.binary_closing(strong_img, iterations=2) & echo, structure=np.ones((3, 3)))
     patches = 0
@@ -269,12 +270,12 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox, confirm=No
         n_heavy = np.bincount(lab_px[heavy], minlength=n + 1)
         n_bad = np.bincount(lab_px[heavy_bad], minlength=n + 1)
         bad_lab = (n_heavy >= PATCH_MIN_HEAVY_PX) & (n_bad >= PATCH_BAD * np.maximum(n_heavy, 1))
-        mod = (vals >= STRONG_DBZ) & inb
+        mod = (vals >= MOD_LO) & inb
         n_mod = np.bincount(lab_px[mod], minlength=n + 1)
         n_backed = np.bincount(lab_px[mod & ~no_deep], minlength=n + 1)
         bad_lab |= (n_mod >= PATCH_MIN_PX) & (n_backed < PATCH_MIN_BACKED * n_mod)
         bad_lab[0] = False
-        patch_px = bad_lab[lab_px] & (vals >= STRONG_DBZ)
+        patch_px = bad_lab[lab_px] & (vals >= MOD_LO)
         patches = int(bad_lab.sum())
         cap |= patch_px
     cap &= ~drop & ~ok2
@@ -284,13 +285,13 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox, confirm=No
     out = dbz.copy()
     out[ys[drop], xs[drop]] = np.nan
     out[ys[cap], xs[cap]] = STRONG_DBZ - 1
-    n_strong = int((vals >= STRONG_DBZ).sum())
-    gone = int((drop & (vals >= STRONG_DBZ)).sum() + cap.sum())
+    n_strong = int((vals >= MOD_LO).sum())
+    gone = int((drop & (vals >= MOD_LO)).sum() + cap.sum())
     REPORT[product] = {"removed_px": int(drop.sum()), "capped_px": int(cap.sum()),
                        "strong_px": n_strong, "strong_gone_px": gone,
                        "strong_gone_share": round(gone / n_strong, 3) if n_strong else 0.0,
                        "sat_time_utc": info.get("time_utc")}
     print(f"[satellite] {product}: {drop.sum()} echo px removed (clear sky), {cap.sum()} px capped to light "
           f"(no deep cloud, satellite rain or second radar; {patches} whole patch(es)) -- {gone} of {n_strong} "
-          f"moderate+ px not backed; {int((ok2 & (vals >= STRONG_DBZ)).sum())} confirmed by another radar")
+          f"moderate+ px not backed; {int((ok2 & (vals >= MOD_LO)).sum())} confirmed by another radar")
     return out
