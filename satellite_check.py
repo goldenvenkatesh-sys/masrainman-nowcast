@@ -42,7 +42,8 @@ are built:
      thunderstorm" cards. H63 showed no rain at any of those towns; the
      real Thanjavur storm had grey 180 and H63 rain.)
   5. SECOND RADAR. Echo that another, independent radar also sees
-     (moderate+ within SAT_CONFIRM_KM, 8 km) is kept whatever the
+     (moderate+ within SAT_CONFIRM_KM, 8 km; normal-range scans only, not
+     the 500 km long-range ones, and not under clear sky) is kept whatever the
      satellite says -- shallow warm-rain monsoon showers have no cold top,
      but they show on every radar looking there; false echo doesn't.
 Rain with real (deep) cloud, satellite rain or a second radar is never touched.
@@ -192,14 +193,16 @@ def _sat_index(dbz, product, pixel_to_latlon, plot_bbox, shape):
     return echo, ys, xs, r, c, inb
 
 
-def screen_all(dbz_by_product: dict, pixel_to_latlon, plot_bbox_of, radar_of) -> dict:
+def screen_all(dbz_by_product: dict, pixel_to_latlon, plot_bbox_of, radar_of, can_confirm=None) -> dict:
     """Screen every radar product at once. Besides the satellite rules,
     echo that a SECOND, independent radar also sees (moderate+ within
     CONFIRM_KM) counts as confirmed: false echo such as anomalous
     propagation is specific to one radar's beam, while real rain shows on
     every radar that looks there (e.g. shallow warm-rain monsoon showers off
     Chennai with no cold cloud top, seen by both NIOT and the IMD Chennai
-    radar)."""
+    radar). Only products for which can_confirm(p) is true can confirm
+    (long-range 500 km scans look kilometres above the ground far out and
+    were seen backing false echo), and echo under clear sky never confirms."""
     if not ENABLED:
         return dbz_by_product
     masks, info = clear_sky_mask()
@@ -211,8 +214,11 @@ def screen_all(dbz_by_product: dict, pixel_to_latlon, plot_bbox_of, radar_of) ->
         if d is None:
             continue
         idx[p] = _sat_index(d, p, pixel_to_latlon, plot_bbox_of(p), shape)
+        if can_confirm is not None and not can_confirm(p):
+            continue
         echo, ys, xs, r, c, inb = idx[p]
         strong = inb & (d[ys, xs] >= MOD_LO)
+        strong[inb] &= ~masks["clear_far"][r[inb], c[inb]]
         m = per_radar.setdefault(radar_of(p), np.zeros(shape, bool))
         m[r[strong], c[strong]] = True
     rc = max(1, int(round(CONFIRM_KM / (STEP * 111.0))))
@@ -225,7 +231,8 @@ def screen_all(dbz_by_product: dict, pixel_to_latlon, plot_bbox_of, radar_of) ->
         if d is None or p not in idx:
             out[p] = d
             continue
-        confirm = (count - near[radar_of(p)].astype(np.int8)) >= 1 if count is not None else None
+        own = near.get(radar_of(p))
+        confirm = None if count is None else ((count - own.astype(np.int8)) if own is not None else count) >= 1
         out[p] = screen(d, p, pixel_to_latlon, plot_bbox_of(p), confirm=confirm, _idx=idx[p])
     return out
 

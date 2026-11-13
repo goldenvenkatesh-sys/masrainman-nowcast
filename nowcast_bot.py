@@ -5199,7 +5199,8 @@ def run_pipeline() -> None:
         try:
             _last_dbz = satellite_check.screen_all(_last_dbz, pixel_to_latlon,
                                                    lambda p: PRODUCTS[p]["plot_bbox"],
-                                                   lambda p: PRODUCT_RADAR.get(p, p))
+                                                   lambda p: PRODUCT_RADAR.get(p, p),
+                                                   lambda p: PRODUCTS[p]["range_km"] <= 300)
         except Exception as e:
             print(f"[satellite] check failed, using radar as is: {e!r}")
     for product, dbz in _last_dbz.items():
