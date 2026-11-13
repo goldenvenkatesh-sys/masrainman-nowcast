@@ -102,6 +102,7 @@ CLEAR_COLOURS = ((0, 192, 0), (0, 0, 255))   # clear land, clear sea in EUMETSAT
 CLOUD_COLOUR = (255, 255, 255)
 
 _cache: dict = {}
+AGREE: dict = {}                       # where 2+ independent radars agree (for tools/false_echo_audit.py)
 REPORT: dict = {}                      # this cycle's summary, read by the social layer / logs
 
 
@@ -226,6 +227,8 @@ def screen_all(dbz_by_product: dict, pixel_to_latlon, plot_bbox_of, radar_of, ca
     disc = (xx * xx + yy * yy) <= rc * rc
     near = {k: ndimage.binary_dilation(m, structure=disc) for k, m in per_radar.items()}
     count = sum(v.astype(np.int8) for v in near.values()) if near else None
+    if count is not None:      # saved for the hourly audit: where 2+ radars see moderate+ rain
+        AGREE.update(mask=count >= 2, bbox=BBOX, step=STEP, time_utc=info.get("time_utc"))
     out = {}
     for p, d in dbz_by_product.items():
         if d is None or p not in idx:

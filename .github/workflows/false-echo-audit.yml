@@ -1,0 +1,46 @@
+name: Hourly false-echo audit (radar vs satellite)
+
+# Runs on its own every hour, separate from the 10-minute radar cycle. It
+# never changes the bot or its posts: it compares the radar picture the bot
+# is using with the Meteosat satellite and sends a report + picture to the
+# admin's private Telegram bot chat. See tools/false_echo_audit.py.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: false-echo-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install Python dependencies
+        run: pip install numpy requests Pillow scipy matplotlib
+      - name: Compare radar with satellite and report
+        run: python tools/false_echo_audit.py
+      - name: Keep the audit picture
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: false-echo-audit
+          path: output/false_echo_audit.jpg
+          if-no-files-found: ignore
+          retention-days: 3

@@ -230,6 +230,33 @@ def build_items(engine):
     return items, doc
 
 
+def _satellite_log(engine):
+    """Keep the last 6 h of satellite-check results (state/satellite_log.json)
+    for the hourly false-echo audit (tools/false_echo_audit.py)."""
+    import time
+    import satellite_check as sc
+    path = config.STATE_DIR / "satellite_log.json"
+    try:
+        log = json.loads(path.read_text())
+    except Exception:
+        log = []
+    entry = {"t": time.time(), "used": bool(sc._cache.get("result", (None, {}))[1].get("used")),
+             "radars": {}}
+    for product, r in sc.REPORT.items():
+        radar = engine.PRODUCT_RADAR.get(product, product)
+        cur = entry["radars"].setdefault(radar, {"strong_px": 0, "strong_gone_px": 0})
+        cur["strong_px"] += r["strong_px"]
+        cur["strong_gone_px"] += r["strong_gone_px"]
+    log = [e for e in log if e.get("t", 0) > time.time() - 6 * 3600] + [entry]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(log))
+    if sc.AGREE.get("mask") is not None:
+        from PIL import Image
+        Image.fromarray(sc.AGREE["mask"].astype("uint8") * 255).convert("1").save(config.STATE_DIR / "radar_agree.png")
+        (config.STATE_DIR / "radar_agree.json").write_text(json.dumps(
+            {"t": time.time(), "bbox": list(sc.AGREE["bbox"]), "step": sc.AGREE["step"]}))
+
+
 def _satellite_notice(engine):
     """(13 Nov 2026) Tell the admin's private bot chat when the satellite
     check threw out a big false echo, so it's clear why a card didn't come.
@@ -284,6 +311,10 @@ def main():
 
     try:
         _satellite_notice(engine)
+    except Exception:
+        traceback.print_exc()
+    try:
+        _satellite_log(engine)
     except Exception:
         traceback.print_exc()
 
