@@ -11,16 +11,17 @@ jobs:
         run: |
           mkdir -p probe && cd probe
           g() { curl -sS -m 40 -L -D "$1.h" -o "$1" "$2" || echo "FAIL $1" >> fails.txt; }
-          g eum_caps.xml "https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetCapabilities"
-          g eum_ir108.png "https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.1.1&request=GetMap&layers=msg_iodc:ir108&styles=&srs=EPSG:4326&bbox=76,8,82,14&width=600&height=600&format=image/png"
-          g imd_asia_ir1.jpg "https://mausam.imd.gov.in/Satellite/3Dasiasec_ir1.jpg"
-          g imd_page.html "https://mausam.imd.gov.in/imd_latest/contents/satellite.php"
-          g rv.json "https://api.rainviewer.com/public/weather-maps.json"
-          g gibs_caps.xml "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=1.3.0"
-          grep -io '<Name>[^<]*\(iodc\|ir108\|mtg\|fci\)[^<]*</Name>' eum_caps.xml | sort -u | head -60 > eum_layers.txt || true
-          grep -io '<Name>[^<]*\(Geostationary\|Meteosat\|Himawari\|IR\)[^<]*</Name>' gibs_caps.xml | sort -u | head -60 > gibs_layers.txt || true
-          grep -io 'src="[^"]*Satellite[^"]*"' imd_page.html | sort -u | head -80 > imd_imgs.txt || true
-          rm -f eum_caps.xml gibs_caps.xml
+          B="https://view.eumetsat.int/geoserver"
+          g wcs_caps.xml "$B/wcs?service=WCS&version=2.0.1&request=GetCapabilities"
+          grep -io '<wcs:CoverageId>[^<]*iodc[^<]*</wcs:CoverageId>' wcs_caps.xml | head -40 > wcs_ids.txt || true
+          rm -f wcs_caps.xml
+          g wcs_ir108.tif "$B/wcs?service=WCS&version=2.0.1&request=GetCoverage&coverageId=msg_iodc__ir108&subset=Lat(8,14)&subset=Long(76,82)&format=image/tiff"
+          g wcs_ir108_b.tif "$B/msg_iodc/wcs?service=WCS&version=2.0.1&request=GetCoverage&coverageId=msg_iodc__ir108&subset=Lat(8,14)&subset=Long(76,82)&format=image/tiff"
+          g gfi.json "$B/ows?service=WMS&version=1.1.1&request=GetFeatureInfo&layers=msg_iodc:ir108&query_layers=msg_iodc:ir108&styles=&srs=EPSG:4326&bbox=76,8,82,14&width=600&height=600&x=278&y=393&info_format=application/json"
+          g legend.png "$B/ows?service=WMS&version=1.1.1&request=GetLegendGraphic&layer=msg_iodc:ir108&format=image/png"
+          g dims.xml "$B/msg_iodc/ir108/ows?service=WMS&version=1.3.0&request=GetCapabilities"
+          grep -io '<Dimension[^>]*>[^<]\{0,300\}' dims.xml | head -3 > dims.txt || true
+          rm -f dims.xml
           ls -la
       - name: Save to branch probe-satellite
         run: |
