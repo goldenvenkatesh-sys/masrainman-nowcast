@@ -4067,6 +4067,28 @@ def sample_cell_velocity_from_flow(flow: np.ndarray, cell: Cell, dt_minutes: flo
     return (round(speed_kmh, 1), round(bearing, 0))
 
 
+def _cells_backed_by(cells: list, dbz: np.ndarray, product: str, radius_km: float = 4.0) -> list:
+    """Keep only cells whose spot still has echo in `dbz`; lower each cell's
+    max_dbz to what is there now."""
+    if not cells or dbz is None:
+        return cells
+    bb = PRODUCTS[product]["plot_bbox"]
+    r = max(1, int(round(radius_km * PRODUCTS[product]["km_per_px"])))
+    kept = []
+    for c in cells:
+        px, py = latlon_to_pixel(c.centroid_latlon[0], c.centroid_latlon[1], product)
+        x, y = int(round(px - bb[0])), int(round(py - bb[1]))
+        win = dbz[max(0, y - r):max(0, y + r + 1), max(0, x - r):max(0, x + r + 1)]
+        here = float(np.nanmax(win)) if win.size and np.isfinite(win).any() else None
+        if here is None or here < 20:
+            print(f"[satellite] {product}: dropped cell {c.id} at {c.centroid_latlon} (no echo left there)")
+            continue
+        if here < c.max_dbz:
+            c.max_dbz = here
+        kept.append(c)
+    return kept
+
+
 def satellite_screen(dbz: np.ndarray, product: str) -> np.ndarray:
     """Drop / tone down echo the satellite doesn't back up (false echoes such
     as anomalous propagation). Never allowed to break a cycle."""
@@ -5182,6 +5204,13 @@ def run_pipeline() -> None:
             else:
                 print(f"[poll] {product}: fetch failed and no archived frame to fall back to -- "
                       f"this product will be missing from this cycle's map")
+
+    # Storm cells are carried over between cycles (when a radar sends no new
+    # frame, last cycle's cells are reused). Make them agree with this
+    # cycle's satellite-checked picture, so a cell found on a false echo
+    # before the check can't keep naming towns ("areas near X") -- 13 Nov 2026.
+    for product, dbz in _last_dbz.items():
+        prev_cells[product] = _cells_backed_by(prev_cells.get(product, []), dbz, product)
 
     _prev_cells = prev_cells
     _last_obs_time_seen = last_obs_time_seen
