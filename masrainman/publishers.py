@@ -78,20 +78,6 @@ def whatsapp_enabled() -> bool:
     return bool(config.WHAPI_TOKEN and config.WHAPI_CHANNEL_ID)
 
 
-def post_facebook(image: bytes, caption: str) -> str:
-    """Graph API: upload a photo to the Page feed (needs a PAGE access token
-    with pages_manage_posts + pages_read_engagement)."""
-    url = f"https://graph.facebook.com/{config.FB_GRAPH_VERSION}/{config.FB_PAGE_ID}/photos"
-    r = requests.post(url, data={"caption": caption, "published": "true",
-                                 "access_token": config.FB_PAGE_TOKEN},
-                      files={"source": ("radar.jpg", image, "image/jpeg")}, timeout=90)
-    body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-    if r.status_code != 200 or "error" in body:
-        msg = (body.get("error") or {}).get("message") or r.text[:200]
-        raise RuntimeError(f"Facebook: {msg}")
-    return body.get("post_id") or body.get("id", "")
-
-
 def post_whatsapp(image: bytes, caption: str) -> str:
     """WhatsApp Channels have no official Meta API, so this goes through the
     Whapi.Cloud gateway (a WhatsApp number linked to Whapi that is an ADMIN
