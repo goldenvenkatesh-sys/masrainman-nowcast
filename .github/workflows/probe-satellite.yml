@@ -1,0 +1,31 @@
+name: probe-satellite (one-off, safe to delete)
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe satellite sources
+        run: |
+          mkdir -p probe && cd probe
+          g() { curl -sS -m 40 -L -D "$1.h" -o "$1" "$2" || echo "FAIL $1" >> fails.txt; }
+          g eum_caps.xml "https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetCapabilities"
+          g eum_ir108.png "https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.1.1&request=GetMap&layers=msg_iodc:ir108&styles=&srs=EPSG:4326&bbox=76,8,82,14&width=600&height=600&format=image/png"
+          g imd_asia_ir1.jpg "https://mausam.imd.gov.in/Satellite/3Dasiasec_ir1.jpg"
+          g imd_page.html "https://mausam.imd.gov.in/imd_latest/contents/satellite.php"
+          g rv.json "https://api.rainviewer.com/public/weather-maps.json"
+          g gibs_caps.xml "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=1.3.0"
+          grep -io '<Name>[^<]*\(iodc\|ir108\|mtg\|fci\)[^<]*</Name>' eum_caps.xml | sort -u | head -60 > eum_layers.txt || true
+          grep -io '<Name>[^<]*\(Geostationary\|Meteosat\|Himawari\|IR\)[^<]*</Name>' gibs_caps.xml | sort -u | head -60 > gibs_layers.txt || true
+          grep -io 'src="[^"]*Satellite[^"]*"' imd_page.html | sort -u | head -80 > imd_imgs.txt || true
+          rm -f eum_caps.xml gibs_caps.xml
+          ls -la
+      - name: Save to branch probe-satellite
+        run: |
+          cd probe
+          git init -q && git checkout -q -b probe-satellite
+          git config user.name masrainman-bot && git config user.email masrainman-bot@users.noreply.github.com
+          git add -A && git commit -q -m "Satellite probe $(date -u +%FT%TZ)"
+          git push -f -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-satellite
