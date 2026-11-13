@@ -16,14 +16,28 @@ are built:
      cloud mask says clear AND the infrared is warm (dark grey), and no
      cloud lies within SAT_BUFFER_KM.
   2. NO COLD CLOUD -> moderate+ echo capped to light. Echo of SAT_STRONG_DBZ
-     (30) or more needs a cloud top colder than about 0 C (IR grey >=
-     SAT_RAIN_GREY) within SAT_BUFFER_KM. Without one it is capped just
+     (30) or more needs a cloud top colder than about -20 C (IR grey >=
+     SAT_RAIN_GREY) or H63 satellite rain within SAT_BUFFER_KM (raised from
+     ~0 C at 06:05 IST 13 Nov: cirrus reached grey 80-118 over false echo
+     at Chinna Salem / Attur / Yercaud). Without one it is capped just
      below the moderate threshold, so no heavy/thunderstorm card or LIVE
      card can come from it, while a real light shower would still show.
      (On 13 Nov thin high cirrus covered much of the false echo, so rule 1
      alone left it standing; about 85% of its 35+ dBZ echo had no top
      colder than ~0 C nearby, while the real Thanjavur cell did.)
-Rain with real (cold) cloud above it is never touched.
+  3. NO DEEP CLOUD AND NO SATELLITE RAIN -> heavy echo capped to light.
+     Echo of SAT_HEAVY_DBZ (40) or more needs EITHER a deep, cold cloud top
+     (IR grey >= SAT_DEEP_GREY, ~ -30 C) OR rain in EUMETSAT's H SAF H63
+     satellite rain-rate product (msg_iodc:h63) within SAT_BUFFER_KM.
+  4. WHOLE PATCH. If most of an echo patch's heavy core fails rule 3, the
+     whole patch (all its moderate+ echo) is capped to light -- a false
+     core means the patch around it is false too.
+     (Added 06:05 IST 13 Nov: thin high cirrus over Ariyalur, Perambalur,
+     Salem and Kallakurichi reached grey 80-118, which passed rule 2, and
+     the Karaikal radar's false echo there gave 57-59 dBZ "very heavy /
+     thunderstorm" cards. H63 showed no rain at any of those towns; the
+     real Thanjavur storm had grey 180 and H63 rain.)
+Rain with real (deep) cloud or satellite rain above it is never touched.
 
 IR grey scale: EUMETSAT serves the 10.8 um channel only as an 8-bit grey
 picture. From clear land at dawn (~297 K -> grey ~24) and the coldest tops
@@ -38,8 +52,11 @@ Settings (environment variables):
   SAT_BUFFER_KM=15       echo within this distance of cloud is kept
   SAT_MAX_AGE_MIN=75     satellite older than this (vs now) is not used
   SAT_WARM_GREY=60       IR grey below this counts as warm (rule 1)
-  SAT_RAIN_GREY=75       IR grey at/above this = cloud top colder than ~0 C (rule 2)
+  SAT_RAIN_GREY=110      IR grey at/above this = cloud top colder than ~ -20 C (rule 2)
   SAT_STRONG_DBZ=30      rule 2 applies to echo at/above this
+  SAT_DEEP_GREY=130      IR grey at/above this = deep cloud top, ~ -30 C (rule 3)
+  SAT_HEAVY_DBZ=40       rules 3-4 apply to echo at/above this
+  SAT_PATCH_BAD=0.6      rule 4: patch capped when this share of its heavy core fails
 """
 from __future__ import annotations
 
@@ -60,8 +77,12 @@ ENABLED = os.environ.get("SAT_CHECK", "true").lower() != "false"
 BUFFER_KM = float(os.environ.get("SAT_BUFFER_KM", "15"))
 MAX_AGE_MIN = float(os.environ.get("SAT_MAX_AGE_MIN", "75"))
 WARM_GREY = int(os.environ.get("SAT_WARM_GREY", "60"))
-RAIN_GREY = int(os.environ.get("SAT_RAIN_GREY", "75"))
+RAIN_GREY = int(os.environ.get("SAT_RAIN_GREY", "110"))
 STRONG_DBZ = float(os.environ.get("SAT_STRONG_DBZ", "30"))
+DEEP_GREY = int(os.environ.get("SAT_DEEP_GREY", "130"))
+HEAVY_DBZ = float(os.environ.get("SAT_HEAVY_DBZ", "40"))
+PATCH_BAD = float(os.environ.get("SAT_PATCH_BAD", "0.6"))
+PATCH_MIN_HEAVY_PX = 10
 
 CLEAR_COLOURS = ((0, 192, 0), (0, 0, 255))   # clear land, clear sea in EUMETSAT's CLM style
 CLOUD_COLOUR = (255, 255, 255)
@@ -123,10 +144,23 @@ def clear_sky_mask(now_utc: datetime | None = None):
         yy, xx = np.ogrid[-r_px:r_px + 1, -r_px:r_px + 1]
         disc = (xx * xx + yy * yy) <= r_px * r_px
         cloud_near = ndimage.binary_dilation(~clear, structure=disc)
-        cold_near = ndimage.binary_dilation(grey >= RAIN_GREY, structure=disc)
+        cold = grey >= RAIN_GREY
+        support = grey >= DEEP_GREY
+        h63_note = "H63 rain-rate unavailable"
+        try:   # H SAF satellite rain rate; optional -- deep cloud alone still counts
+            h63, h63_t = _get_map("msg_iodc:h63", None)
+            if h63.shape == ir.shape:
+                rain = ~np.all(h63 == 255, axis=2) & ~np.all(h63 == 0, axis=2)
+                support |= rain
+                cold |= rain
+                h63_note = f"H63 {h63_t}: {rain.mean():.1%} raining"
+        except Exception as e:
+            h63_note = f"H63 rain-rate unavailable ({e})"
+        cold_near = ndimage.binary_dilation(cold, structure=disc)
+        deep_near = ndimage.binary_dilation(support, structure=disc)
         info.update(used=True, clear_fraction=round(float(clear.mean()), 3))
-        result = ({"clear_far": ~cloud_near, "no_cold": ~cold_near}, info)
-        print(f"[satellite] Meteosat IODC {t} ({age:.0f} min old): {clear.mean():.0%} of south India clear sky")
+        result = ({"clear_far": ~cloud_near, "no_cold": ~cold_near, "no_deep": ~deep_near}, info)
+        print(f"[satellite] Meteosat IODC {t} ({age:.0f} min old): {clear.mean():.0%} of south India clear sky; {h63_note}")
     except Exception as e:
         info["reason"] = str(e)
         print(f"[satellite] check skipped this cycle -- {e}")
@@ -157,6 +191,25 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox) -> np.ndar
     cap = np.zeros(ys.shape, bool)
     drop[inb] = masks["clear_far"][r[inb], c[inb]]
     cap[inb] = masks["no_cold"][r[inb], c[inb]] & (vals[inb] >= STRONG_DBZ)
+    heavy_bad = np.zeros(ys.shape, bool)
+    heavy_bad[inb] = masks["no_deep"][r[inb], c[inb]] & (vals[inb] >= HEAVY_DBZ)
+    cap |= heavy_bad
+    # rule 4: echo patches (connected moderate+ echo) whose heavy core is mostly unbacked
+    strong_img = np.zeros(dbz.shape, bool)
+    strong_img[ys[vals >= STRONG_DBZ], xs[vals >= STRONG_DBZ]] = True
+    strong_img[ys[drop], xs[drop]] = False
+    lab, n = ndimage.label(ndimage.binary_closing(strong_img, iterations=2) & echo, structure=np.ones((3, 3)))
+    patches = 0
+    if n:
+        lab_px = lab[ys, xs]
+        heavy = vals >= HEAVY_DBZ
+        n_heavy = np.bincount(lab_px[heavy], minlength=n + 1)
+        n_bad = np.bincount(lab_px[heavy_bad], minlength=n + 1)
+        bad_lab = (n_heavy >= PATCH_MIN_HEAVY_PX) & (n_bad >= PATCH_BAD * np.maximum(n_heavy, 1))
+        bad_lab[0] = False
+        patch_px = bad_lab[lab_px] & (vals >= STRONG_DBZ)
+        patches = int(bad_lab.sum())
+        cap |= patch_px
     cap &= ~drop
     if not (drop.any() or cap.any()):
         print(f"[satellite] {product}: all {echo.sum()} echo px backed by satellite cloud -- kept")
@@ -171,5 +224,6 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox) -> np.ndar
                        "strong_gone_share": round(gone / n_strong, 3) if n_strong else 0.0,
                        "sat_time_utc": info.get("time_utc")}
     print(f"[satellite] {product}: {drop.sum()} echo px removed (clear sky), {cap.sum()} px capped to light "
-          f"(no cold cloud) -- {gone} of {n_strong} moderate+ px were not backed by satellite")
+          f"(no cold/deep cloud or satellite rain; {patches} whole patch(es)) -- {gone} of {n_strong} "
+          f"moderate+ px were not backed by satellite")
     return out
