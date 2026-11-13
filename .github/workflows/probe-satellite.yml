@@ -12,16 +12,10 @@ jobs:
           mkdir -p probe && cd probe
           g() { curl -sS -m 40 -L -D "$1.h" -o "$1" "$2" || echo "FAIL $1" >> fails.txt; }
           B="https://view.eumetsat.int/geoserver"
-          g wcs_caps.xml "$B/wcs?service=WCS&version=2.0.1&request=GetCapabilities"
-          grep -io '<wcs:CoverageId>[^<]*iodc[^<]*</wcs:CoverageId>' wcs_caps.xml | head -40 > wcs_ids.txt || true
-          rm -f wcs_caps.xml
-          g wcs_ir108.tif "$B/wcs?service=WCS&version=2.0.1&request=GetCoverage&coverageId=msg_iodc__ir108&subset=Lat(8,14)&subset=Long(76,82)&format=image/tiff"
-          g wcs_ir108_b.tif "$B/msg_iodc/wcs?service=WCS&version=2.0.1&request=GetCoverage&coverageId=msg_iodc__ir108&subset=Lat(8,14)&subset=Long(76,82)&format=image/tiff"
-          g gfi.json "$B/ows?service=WMS&version=1.1.1&request=GetFeatureInfo&layers=msg_iodc:ir108&query_layers=msg_iodc:ir108&styles=&srs=EPSG:4326&bbox=76,8,82,14&width=600&height=600&x=278&y=393&info_format=application/json"
-          g legend.png "$B/ows?service=WMS&version=1.1.1&request=GetLegendGraphic&layer=msg_iodc:ir108&format=image/png"
-          g dims.xml "$B/msg_iodc/ir108/ows?service=WMS&version=1.3.0&request=GetCapabilities"
-          grep -io '<Dimension[^>]*>[^<]\{0,300\}' dims.xml | head -3 > dims.txt || true
-          rm -f dims.xml
+          for L in ir108 clm cth; do
+            g sld_$L.xml "$B/ows?service=WMS&version=1.1.1&request=GetStyles&layers=msg_iodc:$L"
+            g map_$L.png "$B/ows?service=WMS&version=1.1.1&request=GetMap&layers=msg_iodc:$L&styles=&srs=EPSG:4326&bbox=76,8,82,14&width=600&height=600&format=image/png"
+          done
           ls -la
       - name: Save to branch probe-satellite
         run: |
