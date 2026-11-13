@@ -29,15 +29,22 @@ are built:
      Echo of SAT_HEAVY_DBZ (40) or more needs EITHER a deep, cold cloud top
      (IR grey >= SAT_DEEP_GREY, ~ -30 C) OR rain in EUMETSAT's H SAF H63
      satellite rain-rate product (msg_iodc:h63) within SAT_BUFFER_KM.
-  4. WHOLE PATCH. If most of an echo patch's heavy core fails rule 3, the
-     whole patch (all its moderate+ echo) is capped to light -- a false
-     core means the patch around it is false too.
+  4. WHOLE PATCH. An echo patch (connected moderate+ echo) is capped to
+     light as a whole when most of its heavy core fails rule 3, or when
+     hardly any of it (< SAT_PATCH_MIN_BACKED) has deep cloud or satellite
+     rain within SAT_BUFFER_KM -- a patch living entirely under thin cirrus
+     is false echo, not rain (it kept "moderate rain coming to Kallakurichi
+     / Perambalur" lines alive after rules 1-3).
      (Added 06:05 IST 13 Nov: thin high cirrus over Ariyalur, Perambalur,
      Salem and Kallakurichi reached grey 80-118, which passed rule 2, and
      the Karaikal radar's false echo there gave 57-59 dBZ "very heavy /
      thunderstorm" cards. H63 showed no rain at any of those towns; the
      real Thanjavur storm had grey 180 and H63 rain.)
-Rain with real (deep) cloud or satellite rain above it is never touched.
+  5. SECOND RADAR. Echo that another, independent radar also sees
+     (moderate+ within SAT_CONFIRM_KM, 8 km) is kept whatever the
+     satellite says -- shallow warm-rain monsoon showers have no cold top,
+     but they show on every radar looking there; false echo doesn't.
+Rain with real (deep) cloud, satellite rain or a second radar is never touched.
 
 IR grey scale: EUMETSAT serves the 10.8 um channel only as an 8-bit grey
 picture. From clear land at dawn (~297 K -> grey ~24) and the coldest tops
@@ -57,6 +64,7 @@ Settings (environment variables):
   SAT_DEEP_GREY=130      IR grey at/above this = deep cloud top, ~ -30 C (rule 3)
   SAT_HEAVY_DBZ=40       rules 3-4 apply to echo at/above this
   SAT_PATCH_BAD=0.6      rule 4: patch capped when this share of its heavy core fails
+  SAT_PATCH_MIN_BACKED=0.1  rule 4: patch capped when less than this share has deep cloud / sat rain
 """
 from __future__ import annotations
 
@@ -83,6 +91,9 @@ DEEP_GREY = int(os.environ.get("SAT_DEEP_GREY", "130"))
 HEAVY_DBZ = float(os.environ.get("SAT_HEAVY_DBZ", "40"))
 PATCH_BAD = float(os.environ.get("SAT_PATCH_BAD", "0.6"))
 PATCH_MIN_HEAVY_PX = 10
+PATCH_MIN_BACKED = float(os.environ.get("SAT_PATCH_MIN_BACKED", "0.1"))
+PATCH_MIN_PX = 20
+CONFIRM_KM = float(os.environ.get("SAT_CONFIRM_KM", "8"))
 
 CLEAR_COLOURS = ((0, 192, 0), (0, 0, 255))   # clear land, clear sea in EUMETSAT's CLM style
 CLOUD_COLOUR = (255, 255, 255)
@@ -168,33 +179,84 @@ def clear_sky_mask(now_utc: datetime | None = None):
     return result
 
 
-def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox) -> np.ndarray:
-    """Apply rules 1 and 2 to `dbz` (NaN = no echo). pixel_to_latlon(px, py,
+def _sat_index(dbz, product, pixel_to_latlon, plot_bbox, shape):
+    """Echo pixels of `dbz` and the satellite-grid cell each falls in."""
+    echo = ~np.isnan(dbz)
+    ys, xs = np.nonzero(echo)
+    lat, lon = pixel_to_latlon(xs + plot_bbox[0], ys + plot_bbox[1], product)
+    r = np.floor((BBOX[3] - lat) / STEP).astype(int)
+    c = np.floor((lon - BBOX[0]) / STEP).astype(int)
+    inb = (r >= 0) & (r < shape[0]) & (c >= 0) & (c < shape[1])
+    return echo, ys, xs, r, c, inb
+
+
+def screen_all(dbz_by_product: dict, pixel_to_latlon, plot_bbox_of, radar_of) -> dict:
+    """Screen every radar product at once. Besides the satellite rules,
+    echo that a SECOND, independent radar also sees (moderate+ within
+    CONFIRM_KM) counts as confirmed: false echo such as anomalous
+    propagation is specific to one radar's beam, while real rain shows on
+    every radar that looks there (e.g. shallow warm-rain monsoon showers off
+    Chennai with no cold cloud top, seen by both NIOT and the IMD Chennai
+    radar)."""
+    if not ENABLED:
+        return dbz_by_product
+    masks, info = clear_sky_mask()
+    if masks is None:
+        return dbz_by_product
+    shape = masks["clear_far"].shape
+    idx, per_radar = {}, {}
+    for p, d in dbz_by_product.items():
+        if d is None:
+            continue
+        idx[p] = _sat_index(d, p, pixel_to_latlon, plot_bbox_of(p), shape)
+        echo, ys, xs, r, c, inb = idx[p]
+        strong = inb & (d[ys, xs] >= STRONG_DBZ)
+        m = per_radar.setdefault(radar_of(p), np.zeros(shape, bool))
+        m[r[strong], c[strong]] = True
+    rc = max(1, int(round(CONFIRM_KM / (STEP * 111.0))))
+    yy, xx = np.ogrid[-rc:rc + 1, -rc:rc + 1]
+    disc = (xx * xx + yy * yy) <= rc * rc
+    near = {k: ndimage.binary_dilation(m, structure=disc) for k, m in per_radar.items()}
+    count = sum(v.astype(np.int8) for v in near.values()) if near else None
+    out = {}
+    for p, d in dbz_by_product.items():
+        if d is None or p not in idx:
+            out[p] = d
+            continue
+        confirm = (count - near[radar_of(p)].astype(np.int8)) >= 1 if count is not None else None
+        out[p] = screen(d, p, pixel_to_latlon, plot_bbox_of(p), confirm=confirm, _idx=idx[p])
+    return out
+
+
+def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox, confirm=None, _idx=None) -> np.ndarray:
+    """Apply rules 1-4 to `dbz` (NaN = no echo). pixel_to_latlon(px, py,
     product) is the engine's own georeferencing; plot_bbox gives the decoded
-    array's pixel offset inside the frame."""
+    array's pixel offset inside the frame. `confirm` (satellite grid, bool):
+    where another radar also sees moderate+ echo -- such echo is kept."""
     if not ENABLED or dbz is None:
         return dbz
-    echo = ~np.isnan(dbz)
-    if not echo.any():
+    if not (~np.isnan(dbz)).any():
         print(f"[satellite] {product}: no echo -- nothing to check")
         return dbz
     masks, info = clear_sky_mask()
     if masks is None:
         return dbz
-    ys, xs = np.nonzero(echo)
-    lat, lon = pixel_to_latlon(xs + plot_bbox[0], ys + plot_bbox[1], product)
-    r = np.floor((BBOX[3] - lat) / STEP).astype(int)
-    c = np.floor((lon - BBOX[0]) / STEP).astype(int)
-    inb = (r >= 0) & (r < masks["clear_far"].shape[0]) & (c >= 0) & (c < masks["clear_far"].shape[1])
+    echo, ys, xs, r, c, inb = _idx or _sat_index(dbz, product, pixel_to_latlon, plot_bbox, masks["clear_far"].shape)
     vals = dbz[ys, xs]
+    ok2 = np.zeros(ys.shape, bool)              # confirmed by another radar
+    if confirm is not None:
+        ok2[inb] = confirm[r[inb], c[inb]]
     drop = np.zeros(ys.shape, bool)
     cap = np.zeros(ys.shape, bool)
     drop[inb] = masks["clear_far"][r[inb], c[inb]]
+    drop &= ~ok2
     cap[inb] = masks["no_cold"][r[inb], c[inb]] & (vals[inb] >= STRONG_DBZ)
-    heavy_bad = np.zeros(ys.shape, bool)
-    heavy_bad[inb] = masks["no_deep"][r[inb], c[inb]] & (vals[inb] >= HEAVY_DBZ)
+    no_deep = np.zeros(ys.shape, bool)          # echo the satellite can't see is never judged
+    no_deep[inb] = masks["no_deep"][r[inb], c[inb]]
+    no_deep &= ~ok2
+    heavy_bad = no_deep & (vals >= HEAVY_DBZ)
     cap |= heavy_bad
-    # rule 4: echo patches (connected moderate+ echo) whose heavy core is mostly unbacked
+    # rule 4: echo patches (connected moderate+ echo)
     strong_img = np.zeros(dbz.shape, bool)
     strong_img[ys[vals >= STRONG_DBZ], xs[vals >= STRONG_DBZ]] = True
     strong_img[ys[drop], xs[drop]] = False
@@ -206,13 +268,17 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox) -> np.ndar
         n_heavy = np.bincount(lab_px[heavy], minlength=n + 1)
         n_bad = np.bincount(lab_px[heavy_bad], minlength=n + 1)
         bad_lab = (n_heavy >= PATCH_MIN_HEAVY_PX) & (n_bad >= PATCH_BAD * np.maximum(n_heavy, 1))
+        mod = (vals >= STRONG_DBZ) & inb
+        n_mod = np.bincount(lab_px[mod], minlength=n + 1)
+        n_backed = np.bincount(lab_px[mod & ~no_deep], minlength=n + 1)
+        bad_lab |= (n_mod >= PATCH_MIN_PX) & (n_backed < PATCH_MIN_BACKED * n_mod)
         bad_lab[0] = False
         patch_px = bad_lab[lab_px] & (vals >= STRONG_DBZ)
         patches = int(bad_lab.sum())
         cap |= patch_px
-    cap &= ~drop
+    cap &= ~drop & ~ok2
     if not (drop.any() or cap.any()):
-        print(f"[satellite] {product}: all {echo.sum()} echo px backed by satellite cloud -- kept")
+        print(f"[satellite] {product}: all {echo.sum()} echo px backed by satellite cloud / another radar -- kept")
         return dbz
     out = dbz.copy()
     out[ys[drop], xs[drop]] = np.nan
@@ -224,6 +290,6 @@ def screen(dbz: np.ndarray, product: str, pixel_to_latlon, plot_bbox) -> np.ndar
                        "strong_gone_share": round(gone / n_strong, 3) if n_strong else 0.0,
                        "sat_time_utc": info.get("time_utc")}
     print(f"[satellite] {product}: {drop.sum()} echo px removed (clear sky), {cap.sum()} px capped to light "
-          f"(no cold/deep cloud or satellite rain; {patches} whole patch(es)) -- {gone} of {n_strong} "
-          f"moderate+ px were not backed by satellite")
+          f"(no deep cloud, satellite rain or second radar; {patches} whole patch(es)) -- {gone} of {n_strong} "
+          f"moderate+ px not backed; {int((ok2 & (vals >= STRONG_DBZ)).sum())} confirmed by another radar")
     return out
